@@ -1,0 +1,19 @@
+# build artifacts and dependencies
+node_modules
+.next
+out
+build
+next-env.d.ts
+*.tsbuildinfo
+package-lock.json
+
+# generated code and database
+lib/generated
+prisma/dev.db
+prisma/migrations
+
+# task reports are kept verbatim
+bench-reports
+
+# local tool settings
+.claude

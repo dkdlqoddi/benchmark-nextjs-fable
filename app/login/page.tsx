@@ -4,6 +4,7 @@ import { AuthForm } from "@/components/features/AuthForm";
 
 export const metadata: Metadata = {
   title: "Log in",
+  description: "Sign in to your HabitLog account.",
 };
 
 /** Login page: credentials (email + password) sign-in form. */

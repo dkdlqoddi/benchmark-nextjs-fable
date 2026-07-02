@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Settings",
+  description: "Preferences and habit management for your HabitLog account.",
 };
 
 /** Settings page placeholder — habit management and preferences land here in a later task. */

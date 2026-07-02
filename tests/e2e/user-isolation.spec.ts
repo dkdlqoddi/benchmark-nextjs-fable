@@ -27,7 +27,8 @@ test("one user's habit data is invisible and unreachable for another user", asyn
   // a foreign habit id behaves exactly like a missing one.
   const detailResponse = await page.goto(habitUrl!);
   expect(detailResponse?.status()).toBe(404);
-  await expect(page.getByText("This page could not be found.")).toBeVisible();
+  // The custom 404 page (app/not-found.tsx) renders for foreign habit ids.
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
 
   const editResponse = await page.goto(`${habitUrl}/edit`);
   expect(editResponse?.status()).toBe(404);

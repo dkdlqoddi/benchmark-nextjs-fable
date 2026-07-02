@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { HabitCard } from "@/components/features/HabitCard";
 import { HabitSearch } from "@/components/features/HabitSearch";
@@ -11,6 +12,11 @@ import { isTargetDate } from "@/lib/target-days";
 
 // Habit data changes at runtime, so always render this page per-request.
 export const dynamic = "force-dynamic";
+
+// Title falls back to the layout default ("HabitLog") — this is the home page.
+export const metadata: Metadata = {
+  description: "Your active habits with today's check-ins, filterable by tag and search.",
+};
 
 type HomeProps = {
   searchParams: Promise<{ tag?: string; q?: string }>;

@@ -4,6 +4,7 @@ import { AuthForm } from "@/components/features/AuthForm";
 
 export const metadata: Metadata = {
   title: "Sign up",
+  description: "Create a HabitLog account and start tracking habits.",
 };
 
 /** Signup page: creates an account and signs the new user straight in. */

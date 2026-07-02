@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Stats",
+  description: "Current and longest streaks plus weekly completion rates for your habits.",
 };
 
 /** Stats page: streaks and weekly completion for the signed-in user's habits. */

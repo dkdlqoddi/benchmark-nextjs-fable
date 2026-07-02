@@ -25,7 +25,10 @@ export async function generateMetadata({ params }: HabitDetailProps): Promise<Me
         select: { name: true },
       })
     : null;
-  return { title: habit?.name ?? "Habit" };
+  return {
+    title: habit?.name ?? "Habit",
+    description: "Monthly check-in calendar — click a past day to toggle it.",
+  };
 }
 
 /** Habit detail page: monthly check-in calendar with prev/next navigation. */

@@ -4,6 +4,7 @@ import { HabitForm } from "@/components/features/HabitForm";
 
 export const metadata: Metadata = {
   title: "New habit",
+  description: "Create a habit: name, color, target days of the week, and tags.",
 };
 
 /** Page with the form for creating a new habit. */

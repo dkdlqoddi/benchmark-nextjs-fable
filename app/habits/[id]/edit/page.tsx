@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Edit habit",
+  description: "Change this habit's name, description, color, target days, and tags.",
 };
 
 /** Page for editing one of the user's habits, reusing the shared habit form. */

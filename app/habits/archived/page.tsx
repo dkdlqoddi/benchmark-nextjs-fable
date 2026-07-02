@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Archived habits",
+  description: "Restore archived habits or delete them permanently.",
 };
 
 /** Page listing the user's archived habits with restore and permanent-delete actions. */

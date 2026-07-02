@@ -49,7 +49,9 @@ Off-day check-ins are allowed — the check-in UI is just dimmed — but streaks
 target days only (`lib/target-days.ts`, `lib/streak.ts`).
 
 Habits can carry up to 5 **tags** (comma-separated in the habit form, normalized to
-lowercase, private per account). The home page filters by tag via chips / `?tag=`.
+lowercase, private per account). The home page filters by tag via chips / `?tag=`,
+and a **search box** (`?q=`) matches name, description, and tag names
+(case-insensitive); both filters compose.
 
 Dark mode: use the Light / Dark / Auto toggle in the top navigation. "Auto"
 follows the OS; the choice persists in `localStorage` and applies before first

@@ -126,17 +126,17 @@ docs (`README.md`, `CLAUDE.md`, `AGENTS.md`, this file) follow ecosystem-convent
 
 ## 5. Routes and rendering
 
-| Route               | Source                          | Rendering       | Purpose                                          |
-| ------------------- | ------------------------------- | --------------- | ------------------------------------------------ |
-| `/`                 | `app/page.tsx`                  | `force-dynamic` | Active habits + today's state; `?tag=` filter    |
-| `/stats`            | `app/stats/page.tsx`            | `force-dynamic` | Weekly completion chart + per-habit streak tiles |
-| `/habits/new`       | `app/habits/new/page.tsx`       | static          | Create-habit form (no data reads)                |
-| `/habits/[id]`      | `app/habits/[id]/page.tsx`      | `force-dynamic` | Monthly calendar; month via `?month=YYYY-MM`     |
-| `/habits/[id]/edit` | `app/habits/[id]/edit/page.tsx` | `force-dynamic` | Edit form pre-filled from the database           |
-| `/habits/archived`  | `app/habits/archived/page.tsx`  | `force-dynamic` | Archived list with restore / delete              |
-| `/settings`         | `app/settings/page.tsx`         | static          | Placeholder                                      |
-| `/login`            | `app/login/page.tsx`            | static          | Credentials sign-in (public)                     |
-| `/signup`           | `app/signup/page.tsx`           | static          | Account creation, signs straight in (public)     |
+| Route               | Source                          | Rendering       | Purpose                                              |
+| ------------------- | ------------------------------- | --------------- | ---------------------------------------------------- |
+| `/`                 | `app/page.tsx`                  | `force-dynamic` | Active habits + today's state; `?tag=`/`?q=` filters |
+| `/stats`            | `app/stats/page.tsx`            | `force-dynamic` | Weekly completion chart + per-habit streak tiles     |
+| `/habits/new`       | `app/habits/new/page.tsx`       | static          | Create-habit form (no data reads)                    |
+| `/habits/[id]`      | `app/habits/[id]/page.tsx`      | `force-dynamic` | Monthly calendar; month via `?month=YYYY-MM`         |
+| `/habits/[id]/edit` | `app/habits/[id]/edit/page.tsx` | `force-dynamic` | Edit form pre-filled from the database               |
+| `/habits/archived`  | `app/habits/archived/page.tsx`  | `force-dynamic` | Archived list with restore / delete                  |
+| `/settings`         | `app/settings/page.tsx`         | static          | Placeholder                                          |
+| `/login`            | `app/login/page.tsx`            | static          | Credentials sign-in (public)                         |
+| `/signup`           | `app/signup/page.tsx`           | static          | Account creation, signs straight in (public)         |
 
 All routes except `/login` and `/signup` require a session (enforced by `proxy.ts`, re-checked by
 `requireUserId()` in every data-reading page); signed-in users are bounced off the auth pages back
@@ -243,6 +243,10 @@ verified in isolation:
   uses.
 - `lib/tags.ts` — tag limits (≤ 5 per habit, ≤ 20 chars) and normalization: `normalizeTagName`
   (also applied to the `?tag=` query) and `parseTagList` for the comma-separated form input.
+- `lib/home-filters.ts` — the home page's filter params: `normalizeSearchQuery` (trim/collapse/cap
+  the `?q=` value) and `homeHref` for building links that preserve tag + search state. Search is a
+  plain GET form (`HabitSearch`, a server component) — a read, so no server action; matching uses
+  Prisma `contains` (SQLite `LIKE`, ASCII case-insensitive) over name, description, and tag names.
 - `lib/auth-schema.ts` — zod schemas for login (non-empty password) and signup (8–72 chars —
   bcrypt only reads 72 bytes) plus `parseAuthForm`; emails are trimmed + lowercased, and the
   password is never echoed back in form state.

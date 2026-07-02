@@ -1,23 +1,26 @@
 import Link from "next/link";
+import { homeHref } from "@/lib/home-filters";
 
 type TagFilterProps = {
   /** Normalized names of all tags on the user's active habits, sorted. */
   tags: string[];
   /** The currently selected tag, if any. */
   activeTag?: string;
+  /** Current search query — preserved when switching tags. */
+  query?: string;
 };
 
 /**
  * Row of tag filter chips for the home page: "All" plus one chip per tag.
- * Chips are plain links carrying the ?tag= query, so filtering is fully
- * server-rendered.
+ * Chips are plain links carrying the ?tag= (and any ?q=) query, so filtering
+ * is fully server-rendered.
  */
-export function TagFilter({ tags, activeTag }: TagFilterProps) {
+export function TagFilter({ tags, activeTag, query }: TagFilterProps) {
   const chips = [
-    { label: "All", href: "/", active: activeTag === undefined },
+    { label: "All", href: homeHref({ q: query }), active: activeTag === undefined },
     ...tags.map((name) => ({
       label: `#${name}`,
-      href: `/?tag=${encodeURIComponent(name)}`,
+      href: homeHref({ tag: name, q: query }),
       active: name === activeTag,
     })),
   ];

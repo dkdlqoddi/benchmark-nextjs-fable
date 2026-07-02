@@ -112,4 +112,15 @@ describe("check-in toggle at the Seoul midnight boundary (p14 regression)", () =
     await toggleCheckInForDate(habitId, "not-a-date");
     expect(await storedDates()).toEqual([]);
   });
+
+  it("rejects well-shaped keys that are not real calendar days (audit D-1)", async () => {
+    // The date is a client-tamperable bound argument: shape alone must not be
+    // enough — "2026-02-31" sorts before today, so only calendar validation
+    // keeps it out of the table (where it would be an unremovable junk row).
+    freezeAt(BEFORE_MIDNIGHT);
+    await toggleCheckInForDate(habitId, "2026-02-31");
+    await toggleCheckInForDate(habitId, "2025-13-40");
+    await toggleCheckInForDate(habitId, "2025-04-31");
+    expect(await storedDates()).toEqual([]);
+  });
 });

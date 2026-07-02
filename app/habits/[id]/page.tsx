@@ -68,7 +68,7 @@ export default async function HabitDetailPage({ params, searchParams }: HabitDet
           />
           <h1 className="truncate text-2xl font-bold tracking-tight">{habit.name}</h1>
         </div>
-        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
           Target days: {targetDaysLabel(habit.targetDays)}
         </p>
         {habit.description ? (

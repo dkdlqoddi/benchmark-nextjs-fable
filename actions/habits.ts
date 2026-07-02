@@ -62,14 +62,23 @@ export async function updateHabit(
   }
 
   const { tags, ...habitData } = parsed.data;
-  await prisma.habit.update({
-    where: { id: habitId },
-    // `set: []` first: the submitted list fully replaces the previous tags.
-    data: {
-      ...habitData,
-      tags: { set: [], connectOrCreate: tagsConnectOrCreate(userId, tags) },
-    },
-  });
+  try {
+    await prisma.habit.update({
+      where: { id: habitId },
+      // `set: []` first: the submitted list fully replaces the previous tags.
+      data: {
+        ...habitData,
+        tags: { set: [], connectOrCreate: tagsConnectOrCreate(userId, tags) },
+      },
+    });
+  } catch (error) {
+    // A concurrent delete may have removed the habit after the ownership
+    // gate — surface it like the gate does instead of a 500.
+    if (!isPrismaErrorCode(error, "P2025")) {
+      throw error;
+    }
+    return { status: "error", formError: "This habit no longer exists." };
+  }
   await deleteOrphanTags(userId);
   revalidatePath("/");
   redirect("/");

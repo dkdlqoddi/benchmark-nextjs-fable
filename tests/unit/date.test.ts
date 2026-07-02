@@ -7,6 +7,7 @@ import {
   daysInMonth,
   firstWeekday,
   isFutureKey,
+  isValidDateKey,
   monthLabel,
   monthParam,
   parseMonth,
@@ -66,6 +67,33 @@ describe("todayKey / isFutureKey — frozen clock at a timezone boundary", () =>
     expect(isFutureKey("2026-07-02")).toBe(false);
     expect(isFutureKey("2026-07-03")).toBe(true);
     expect(isFutureKey("2026-10-01")).toBe(true);
+  });
+});
+
+describe("isValidDateKey — real calendar days only (audit D-1)", () => {
+  it("accepts canonical keys for real days", () => {
+    expect(isValidDateKey("2026-07-02")).toBe(true);
+    expect(isValidDateKey("2026-01-01")).toBe(true);
+    expect(isValidDateKey("2026-12-31")).toBe(true);
+    expect(isValidDateKey("2028-02-29")).toBe(true); // leap day
+  });
+
+  it("rejects malformed shapes", () => {
+    expect(isValidDateKey("2026-7-2")).toBe(false);
+    expect(isValidDateKey("20260702")).toBe(false);
+    expect(isValidDateKey("not-a-date")).toBe(false);
+    expect(isValidDateKey("")).toBe(false);
+    expect(isValidDateKey("2026-07-02T00:00")).toBe(false);
+  });
+
+  it("rejects well-shaped keys that are not calendar days", () => {
+    expect(isValidDateKey("2026-02-31")).toBe(false); // no Feb 31
+    expect(isValidDateKey("2027-02-29")).toBe(false); // 2027 is not a leap year
+    expect(isValidDateKey("2100-02-29")).toBe(false); // century non-leap
+    expect(isValidDateKey("2025-13-01")).toBe(false); // month 13
+    expect(isValidDateKey("2025-00-10")).toBe(false); // month 0
+    expect(isValidDateKey("2025-04-31")).toBe(false); // April has 30 days
+    expect(isValidDateKey("2025-06-00")).toBe(false); // day 0
   });
 });
 

@@ -1,6 +1,7 @@
 import { deleteHabit, restoreHabit } from "@/actions/habits";
 import { Card } from "@/components/ui/Card";
 import { ConfirmForm } from "@/components/ui/ConfirmForm";
+import { toDateKey } from "@/lib/date";
 import type { Habit } from "@/lib/generated/prisma/client";
 
 /**
@@ -23,8 +24,10 @@ export function ArchivedHabitCard({ habit }: { habit: Habit }) {
           {habit.description}
         </p>
       ) : null}
-      <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
-        Archived {habit.archivedAt ? habit.archivedAt.toISOString().slice(0, 10) : ""}
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+        {/* toDateKey, not toISOString: the archive date must be the app's
+            (Asia/Seoul) calendar day, not the UTC one. */}
+        Archived {habit.archivedAt ? toDateKey(habit.archivedAt) : ""}
       </p>
       <div className="mt-4 flex items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
         <form action={restoreHabit.bind(null, habit.id)}>

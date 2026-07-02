@@ -30,6 +30,9 @@ export default defineConfig({
     url: `http://localhost:${PORT}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
-    env: { DATABASE_URL, PORT: String(PORT) },
+    // AUTH_SECRET: the E2E server is a production build, and production
+    // deliberately has no built-in secret fallback (see lib/auth-config.ts) —
+    // a throwaway test-only value stands in for a real deployment secret.
+    env: { DATABASE_URL, PORT: String(PORT), AUTH_SECRET: "habitlog-e2e-test-secret" },
   },
 });

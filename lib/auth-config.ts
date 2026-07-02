@@ -8,9 +8,16 @@ declare module "next-auth" {
 }
 
 // Signs/encrypts the JWT session cookie. The fallback keeps the zero-.env dev
-// setup working (same pattern as the DATABASE_URL default); set AUTH_SECRET in
-// any real deployment.
-const secret = process.env.AUTH_SECRET ?? "habitlog-dev-only-secret-change-in-production";
+// setup working (same pattern as the DATABASE_URL default) but is strictly
+// non-production: it is committed to the repo, so a production deployment
+// running on it would have forgeable sessions. In production the secret comes
+// from the environment only — when AUTH_SECRET is missing there, Auth.js fails
+// closed per request with MissingSecret instead of serving insecure sessions.
+const secret =
+  process.env.AUTH_SECRET ??
+  (process.env.NODE_ENV === "production"
+    ? undefined
+    : "habitlog-dev-only-secret-change-in-production");
 
 /**
  * Base Auth.js options shared by the full server config (`lib/auth.ts`) and

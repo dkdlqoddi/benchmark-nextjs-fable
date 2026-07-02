@@ -35,6 +35,19 @@ export function isFutureKey(key: string): boolean {
   return key > todayKey();
 }
 
+/**
+ * True when the string is a canonical YYYY-MM-DD key naming a real calendar
+ * day (month 1-12, day within the month, leap-aware). Guards check-in dates
+ * arriving from the client, where format alone would let "2026-02-31" through.
+ */
+export function isValidDateKey(key: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+    return false;
+  }
+  const [year, month, day] = key.split("-").map(Number);
+  return month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(year, month);
+}
+
 /** Weekday of a YYYY-MM-DD key (0 = Sunday … 6 = Saturday). */
 export function weekday(key: string): number {
   const [year, month, day] = key.split("-").map(Number);

@@ -2,11 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth";
-import { isFutureKey } from "@/lib/date";
+import { isFutureKey, isValidDateKey } from "@/lib/date";
 import { findOwnedHabit } from "@/lib/ownership";
 import { isPrismaErrorCode, prisma } from "@/lib/prisma";
-
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Creates the check-in unless it already exists, then deletes it — i.e.
@@ -41,10 +39,12 @@ async function toggleCheckIn(habitId: string, date: string): Promise<void> {
  * Toggles the check-in of one calendar date (home card button and calendar
  * cell click — both bind the date key they rendered, so a click toggles the
  * day the user saw even when processed after Seoul midnight).
- * Rejects malformed keys and future dates server-side, mirroring the disabled UI.
+ * Rejects malformed or calendar-invalid keys and future dates server-side,
+ * mirroring the disabled UI — the date is a client-tamperable bound argument,
+ * so shape alone ("2026-02-31") must not be enough to store a row.
  */
 export async function toggleCheckInForDate(habitId: string, date: string): Promise<void> {
-  if (!DATE_KEY_PATTERN.test(date) || isFutureKey(date)) {
+  if (!isValidDateKey(date) || isFutureKey(date)) {
     return;
   }
   await toggleCheckIn(habitId, date);

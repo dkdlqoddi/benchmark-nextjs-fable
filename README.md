@@ -38,8 +38,13 @@ private to the account that owns it.
 
 The database connection defaults to `file:./prisma/dev.db`; set the `DATABASE_URL`
 environment variable to override it. Sessions are JWT cookies signed with
-`AUTH_SECRET` — a built-in dev fallback is used when unset, so no `.env` is needed
-for local development (set a real `AUTH_SECRET` in any deployment).
+`AUTH_SECRET` — a built-in dev-only fallback is used when unset, so no `.env` is
+needed for local development. **In production there is no fallback:** set a real
+`AUTH_SECRET` (e.g. `openssl rand -base64 32`), or every request fails with
+Auth.js's `MissingSecret` error rather than running on a forgeable secret.
+
+Repeated failed logins are throttled: 5 consecutive failures for an email lock
+it for 15 minutes (in-memory, per process — see `lib/login-rate-limit.ts`).
 
 Check-in dates ("today", the calendar) are fixed to the **Asia/Seoul** timezone
 regardless of the server's TZ — see the helpers in `lib/date.ts`.

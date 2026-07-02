@@ -45,7 +45,7 @@ export function HabitStatsCard({ habit, stats }: HabitStatsCardProps) {
           </Link>
         </h2>
       </div>
-      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
         {targetDaysLabel(habit.targetDays)}
       </p>
       <dl className="mt-4 grid grid-cols-3 gap-4">

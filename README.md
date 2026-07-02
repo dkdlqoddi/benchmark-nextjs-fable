@@ -33,6 +33,10 @@ environment variable to override it.
 Check-in dates ("today", the calendar) are fixed to the **Asia/Seoul** timezone
 regardless of the server's TZ — see the helpers in `lib/date.ts`.
 
+Dark mode: use the Light / Dark / Auto toggle in the top navigation. "Auto"
+follows the OS; the choice persists in `localStorage` and applies before first
+paint (no flash).
+
 ## npm scripts
 
 | Script                  | What it does                                        |

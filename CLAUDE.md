@@ -15,6 +15,12 @@ Timezone: the app's calendar dates are fixed to Asia/Seoul regardless of server 
 Never compute "today" or date keys ad hoc — always use the helpers in `lib/date.ts`
 (`todayKey`, `dateKey`, `addDays`, `parseMonth`, …).
 
+Dark mode is class-based: `dark:` variants key off the `.dark` class on `<html>`
+(`@custom-variant` in globals.css), set pre-paint by `THEME_INIT_SCRIPT` and
+controlled by the Light/Dark/Auto toggle (`lib/theme.ts`, localStorage key
+`theme`). Do not reintroduce `prefers-color-scheme` media queries for styling —
+add dark styles via `dark:` classes or the `.dark` CSS block.
+
 ## Project Rules (apply to all work)
 
 1. Write every component as a Server Component by default. Use `'use client'` only

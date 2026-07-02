@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/" },
@@ -14,20 +15,23 @@ export function TopNav() {
         <Link href="/" className="text-lg font-bold tracking-tight">
           HabitLog
         </Link>
-        <nav aria-label="Main navigation">
-          <ul className="flex items-center gap-4 text-sm font-medium sm:gap-6">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <div className="flex items-center gap-4 sm:gap-6">
+          <nav aria-label="Main navigation">
+            <ul className="flex items-center gap-4 text-sm font-medium sm:gap-6">
+              {NAV_ITEMS.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
+/* `dark:` variants key off the .dark class on <html>, set before paint by the
+   theme init script (lib/theme.ts) so the user's choice can override the OS. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
   /* chart tokens — accent validated for both surfaces (dataviz six checks) */
@@ -9,20 +14,19 @@
   --chart-muted-text: #71717a; /* zinc-500 */
 }
 
+.dark {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --chart-grid: #27272a; /* zinc-800 */
+  --chart-muted-text: #a1a1aa; /* zinc-400 */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --chart-grid: #27272a; /* zinc-800 */
-    --chart-muted-text: #a1a1aa; /* zinc-400 */
-  }
 }
 
 body {

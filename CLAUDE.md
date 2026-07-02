@@ -21,9 +21,10 @@ the shared instance from `lib/prisma.ts`.
 4. Directory structure: `app/` (routes), `components/ui/` (generic UI),
    `components/features/` (domain components), `lib/` (utilities, prisma client),
    `actions/` (server actions).
-5. No hardcoded colors; use Tailwind tokens only. (Exception: user data such as
-   `habit.color` is applied via inline `style` — it comes from the database, not
-   the stylesheet.)
+5. No hardcoded colors; use Tailwind tokens only. (Exception: data-driven habit
+   colors — `habit.color` values and the `HABIT_COLORS` preset swatches in
+   `lib/habit-colors.ts` — are applied via inline `style`, since they are data,
+   not stylesheet values.)
 6. Every exported function must have at least one line of JSDoc.
 
 ## Reporting Rules (apply to every task)

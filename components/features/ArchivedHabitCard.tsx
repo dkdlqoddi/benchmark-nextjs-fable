@@ -1,14 +1,13 @@
-import Link from "next/link";
-import { archiveHabit } from "@/actions/habits";
+import { deleteHabit, restoreHabit } from "@/actions/habits";
 import { Card } from "@/components/ui/Card";
+import { ConfirmForm } from "@/components/ui/ConfirmForm";
 import type { Habit } from "@/lib/generated/prisma/client";
 
 /**
- * Card for a single habit showing its color swatch, name, optional description,
- * and the Edit / Archive actions. The swatch color is user data from the
- * database, so it is applied as an inline style rather than a Tailwind token.
+ * Card for an archived habit with Restore and permanent Delete actions.
+ * Delete asks for confirmation and also removes the habit's check-ins.
  */
-export function HabitCard({ habit }: { habit: Habit }) {
+export function ArchivedHabitCard({ habit }: { habit: Habit }) {
   return (
     <Card className="flex h-full flex-col">
       <div className="flex items-center gap-3">
@@ -24,21 +23,29 @@ export function HabitCard({ habit }: { habit: Habit }) {
           {habit.description}
         </p>
       ) : null}
+      <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+        Archived {habit.archivedAt ? habit.archivedAt.toISOString().slice(0, 10) : ""}
+      </p>
       <div className="mt-4 flex items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-        <Link
-          href={`/habits/${habit.id}/edit`}
-          className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-        >
-          Edit
-        </Link>
-        <form action={archiveHabit.bind(null, habit.id)}>
+        <form action={restoreHabit.bind(null, habit.id)}>
           <button
             type="submit"
             className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
           >
-            Archive
+            Restore
           </button>
         </form>
+        <ConfirmForm
+          action={deleteHabit.bind(null, habit.id)}
+          message={`Delete "${habit.name}" and all of its check-ins permanently? This cannot be undone.`}
+        >
+          <button
+            type="submit"
+            className="rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+          >
+            Delete
+          </button>
+        </ConfirmForm>
       </div>
     </Card>
   );

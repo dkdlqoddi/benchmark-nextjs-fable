@@ -15,6 +15,20 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
   habits       Habit[]
+  tags         Tag[]
+}
+
+/// A user-scoped label attached to any number of habits (implicit m2m).
+/// `name` is stored normalized — trimmed, single-spaced, lowercase
+/// (lib/tags.ts) — and is unique per user, never shared across users.
+model Tag {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String
+  habits Habit[]
+
+  @@unique([userId, name])
 }
 
 /// A habit the user wants to build. `name` must be 1-50 chars and
@@ -35,6 +49,7 @@ model Habit {
   createdAt   DateTime  @default(now())
   archivedAt  DateTime?
   checkIns    CheckIn[]
+  tags        Tag[]
 
   @@index([userId])
 }

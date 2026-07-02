@@ -2,11 +2,11 @@ import Link from "next/link";
 import { toggleTodayCheckIn } from "@/actions/check-ins";
 import { archiveHabit } from "@/actions/habits";
 import { Card } from "@/components/ui/Card";
-import type { Habit } from "@/lib/generated/prisma/client";
+import type { Habit, Tag } from "@/lib/generated/prisma/client";
 import { targetDaysLabel } from "@/lib/target-days";
 
 type HabitCardProps = {
-  habit: Habit;
+  habit: Habit & { tags: Pick<Tag, "id" | "name">[] };
   /** Whether the habit already has a check-in for today (app timezone). */
   checkedToday: boolean;
   /** Whether today is one of the habit's target days; off-days dim the toggle. */
@@ -15,10 +15,11 @@ type HabitCardProps = {
 
 /**
  * Card for a single habit: color swatch, name (links to the calendar detail
- * page), target-day label, optional description, a "check in today" toggle
- * (dimmed on off-days, but still active), and Edit / Archive actions. Swatch
- * and checked-state colors are user data from the database, so they are
- * applied as inline styles rather than Tailwind tokens.
+ * page), target-day label, optional description, tag chips (linking to the
+ * filtered home page), a "check in today" toggle (dimmed on off-days, but
+ * still active), and Edit / Archive actions. Swatch and checked-state colors
+ * are user data from the database, so they are applied as inline styles
+ * rather than Tailwind tokens.
  */
 export function HabitCard({ habit, checkedToday, isTargetToday }: HabitCardProps) {
   return (
@@ -42,6 +43,19 @@ export function HabitCard({ habit, checkedToday, isTargetToday }: HabitCardProps
         <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
           {habit.description}
         </p>
+      ) : null}
+      {habit.tags.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {habit.tags.map((tag) => (
+            <Link
+              key={tag.id}
+              href={`/?tag=${encodeURIComponent(tag.name)}`}
+              className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+            >
+              #{tag.name}
+            </Link>
+          ))}
+        </div>
       ) : null}
       <form action={toggleTodayCheckIn.bind(null, habit.id)} className="mt-4">
         <button

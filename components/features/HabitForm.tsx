@@ -12,7 +12,14 @@ type HabitFormProps = {
   /** Server action handling the submit (createHabit or a bound updateHabit). */
   action: (prevState: HabitFormState, formData: FormData) => Promise<HabitFormState>;
   /** Current values when editing; omit for the create form. */
-  initialValues?: { name: string; description: string | null; color: string; targetDays: string };
+  initialValues?: {
+    name: string;
+    description: string | null;
+    color: string;
+    targetDays: string;
+    /** Comma-separated tag names, e.g. "health, morning". */
+    tags: string;
+  };
   submitLabel: string;
 };
 
@@ -34,6 +41,7 @@ export function HabitForm({ action, initialValues, submitLabel }: HabitFormProps
     description: state.values?.description ?? initialValues?.description ?? "",
     color: state.values?.color || (initialValues?.color ?? HABIT_COLORS[0].value),
     targetDays: state.values?.targetDays ?? initialValues?.targetDays ?? EVERY_DAY,
+    tags: state.values?.tags ?? initialValues?.tags ?? "",
   };
 
   return (
@@ -130,6 +138,31 @@ export function HabitForm({ action, initialValues, submitLabel }: HabitFormProps
           <p className="text-sm text-red-600 dark:text-red-400">{state.fieldErrors.targetDays}</p>
         ) : null}
       </fieldset>
+
+      <div className="space-y-1.5">
+        <label htmlFor="habit-tags" className="block text-sm font-medium">
+          Tags <span className="font-normal text-zinc-500 dark:text-zinc-400">(optional)</span>
+        </label>
+        <input
+          id="habit-tags"
+          name="tags"
+          type="text"
+          defaultValue={current.tags}
+          placeholder="health, morning"
+          aria-invalid={Boolean(state.fieldErrors?.tags)}
+          aria-describedby={state.fieldErrors?.tags ? "habit-tags-error" : "habit-tags-hint"}
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-400 dark:focus:ring-zinc-700"
+        />
+        {state.fieldErrors?.tags ? (
+          <p id="habit-tags-error" className="text-sm text-red-600 dark:text-red-400">
+            {state.fieldErrors.tags}
+          </p>
+        ) : (
+          <p id="habit-tags-hint" className="text-sm text-zinc-500 dark:text-zinc-400">
+            Comma-separated, up to 5. The home page can filter by tag.
+          </p>
+        )}
+      </div>
 
       {state.formError ? (
         <p className="text-sm text-red-600 dark:text-red-400">{state.formError}</p>

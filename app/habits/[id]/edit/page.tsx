@@ -17,7 +17,10 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
   const userId = await requireUserId();
   const { id } = await params;
   // Scoped lookup: another user's habit id 404s exactly like a missing one.
-  const habit = await prisma.habit.findFirst({ where: { id, userId } });
+  const habit = await prisma.habit.findFirst({
+    where: { id, userId },
+    include: { tags: { select: { name: true }, orderBy: { name: "asc" } } },
+  });
   if (!habit) {
     notFound();
   }
@@ -37,6 +40,7 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
           description: habit.description,
           color: habit.color,
           targetDays: habit.targetDays,
+          tags: habit.tags.map((tag) => tag.name).join(", "),
         }}
         submitLabel="Save changes"
       />

@@ -128,7 +128,7 @@ docs (`README.md`, `CLAUDE.md`, `AGENTS.md`, this file) follow ecosystem-convent
 
 | Route               | Source                          | Rendering       | Purpose                                          |
 | ------------------- | ------------------------------- | --------------- | ------------------------------------------------ |
-| `/`                 | `app/page.tsx`                  | `force-dynamic` | Active habits with today's check-in state        |
+| `/`                 | `app/page.tsx`                  | `force-dynamic` | Active habits + today's state; `?tag=` filter    |
 | `/stats`            | `app/stats/page.tsx`            | `force-dynamic` | Weekly completion chart + per-habit streak tiles |
 | `/habits/new`       | `app/habits/new/page.tsx`       | static          | Create-habit form (no data reads)                |
 | `/habits/[id]`      | `app/habits/[id]/page.tsx`      | `force-dynamic` | Monthly calendar; month via `?month=YYYY-MM`     |
@@ -170,10 +170,12 @@ Next 16 specifics used here: `params` and `searchParams` are Promises and are aw
 **Data model** (`prisma/schema.prisma`):
 
 ```
-User     id (cuid) · email (unique, lowercase) · passwordHash (bcrypt) · createdAt · habits[]
+User     id (cuid) · email (unique, lowercase) · passwordHash (bcrypt) · createdAt · habits[] · tags[]
 Habit    id (cuid) · userId (FK → User, onDelete: Cascade, indexed) · name · description? ·
          color (hex string) · targetDays (7-char 0/1 mask, default "1111111") · createdAt ·
-         archivedAt? · checkIns[]
+         archivedAt? · checkIns[] · tags[] (implicit m2m)
+Tag      id (cuid) · userId (FK → User, onDelete: Cascade) · name (normalized) · habits[]
+         @@unique([userId, name])
 CheckIn  id (cuid) · habitId (FK → Habit, onDelete: Cascade) · date (string "YYYY-MM-DD") · createdAt
          @@unique([habitId, date])
 ```
@@ -184,6 +186,12 @@ Deliberate modeling choices:
   its habit, so check-in scoping always goes through the habit (`habit: { userId }` relation
   filters, or an ownership `findFirst` before touching check-ins). One source of truth, no
   possibility of a check-in whose owner disagrees with its habit's owner.
+- **Tags are user-scoped labels on an implicit m2m.** Names are stored normalized (trimmed,
+  single-spaced, lowercase — `lib/tags.ts`), unique per `(userId, name)` and never shared across
+  users (alice's "health" and bob's "health" are different rows). Habits attach ≤ 5 tags via
+  user-scoped `connectOrCreate`; updates replace with `set: [] + connectOrCreate`; mutations end
+  with an orphan sweep (`tag.deleteMany({ userId, habits: { none: {} } })`). The home page filter
+  (`?tag=`) and its chips derive from the user's active habits only.
 - **Target days are a 7-char 0/1 mask** (`targetDays`, index 0 = Sunday — the same weekday
   numbering as `lib/date.ts`), validated to have ≥ 1 target day (`lib/target-days.ts`). The
   column default `"1111111"` (every day) is also the migration story: existing rows were
@@ -233,6 +241,8 @@ verified in isolation:
   `useActionState`-compatible `HabitFormState` shape).
 - `lib/habit-colors.ts` — the 8 preset colors as data, with the `isHabitColor` guard the schema
   uses.
+- `lib/tags.ts` — tag limits (≤ 5 per habit, ≤ 20 chars) and normalization: `normalizeTagName`
+  (also applied to the `?tag=` query) and `parseTagList` for the comma-separated form input.
 - `lib/auth-schema.ts` — zod schemas for login (non-empty password) and signup (8–72 chars —
   bcrypt only reads 72 bytes) plus `parseAuthForm`; emails are trimmed + lowercased, and the
   password is never echoed back in form state.

@@ -12,6 +12,7 @@ const prisma = new PrismaClient({ adapter });
 const PASSWORD = "password123";
 
 // targetDays: 7-char 0/1 mask, index 0 = Sunday … 6 = Saturday.
+// tags: normalized (lowercase) names; created per user via connectOrCreate.
 const ACCOUNTS = [
   {
     email: "alice@test.com",
@@ -21,18 +22,21 @@ const ACCOUNTS = [
         description: "Run for at least 20 minutes before starting the day.",
         color: "#10b981",
         targetDays: "0101010", // Mon / Wed / Fri
+        tags: ["health", "morning"],
       },
       {
         name: "Read 20 Pages",
         description: "Any book counts — fiction, non-fiction, or technical.",
         color: "#3b82f6",
         targetDays: "1111111", // every day
+        tags: ["growth"],
       },
       {
         name: "Meditate",
         description: null,
         color: "#f59e0b",
         targetDays: "0111110", // weekdays
+        tags: ["health", "mindfulness", "morning"],
       },
     ],
   },
@@ -44,18 +48,21 @@ const ACCOUNTS = [
         description: "Strength or cardio, at least 45 minutes.",
         color: "#ef4444",
         targetDays: "0010101", // Tue / Thu / Sat
+        tags: ["fitness"],
       },
       {
         name: "Journal",
         description: "Three sentences about the day.",
         color: "#8b5cf6",
         targetDays: "1111111", // every day
+        tags: ["mindfulness", "evening"],
       },
       {
         name: "Drink 2L Water",
         description: null,
         color: "#0ea5e9",
         targetDays: "1111111", // every day
+        tags: ["health"],
       },
     ],
   },
@@ -83,6 +90,7 @@ function randomDateKeys(days: number): string[] {
  */
 async function main(): Promise<void> {
   await prisma.checkIn.deleteMany();
+  await prisma.tag.deleteMany();
   await prisma.habit.deleteMany();
   await prisma.user.deleteMany();
 
@@ -92,8 +100,19 @@ async function main(): Promise<void> {
     const user = await prisma.user.create({
       data: { email: account.email, passwordHash },
     });
-    for (const data of account.habits) {
-      const habit = await prisma.habit.create({ data: { ...data, userId: user.id } });
+    for (const { tags, ...data } of account.habits) {
+      const habit = await prisma.habit.create({
+        data: {
+          ...data,
+          userId: user.id,
+          tags: {
+            connectOrCreate: tags.map((name) => ({
+              where: { userId_name: { userId: user.id, name } },
+              create: { userId: user.id, name },
+            })),
+          },
+        },
+      });
       const checkIns = randomDateKeys(14).map((date) => ({
         habitId: habit.id,
         date,

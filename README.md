@@ -48,6 +48,9 @@ Each habit has **target days of the week** (e.g. Mon/Wed/Fri; default: every day
 Off-day check-ins are allowed — the check-in UI is just dimmed — but streaks count
 target days only (`lib/target-days.ts`, `lib/streak.ts`).
 
+Habits can carry up to 5 **tags** (comma-separated in the habit form, normalized to
+lowercase, private per account). The home page filters by tag via chips / `?tag=`.
+
 Dark mode: use the Light / Dark / Auto toggle in the top navigation. "Auto"
 follows the OS; the choice persists in `localStorage` and applies before first
 paint (no flash).

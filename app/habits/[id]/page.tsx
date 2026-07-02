@@ -33,7 +33,10 @@ export default async function HabitDetailPage({ params, searchParams }: HabitDet
   const userId = await requireUserId();
   const [{ id }, { month: monthQuery }] = await Promise.all([params, searchParams]);
   // Scoped lookup: another user's habit id 404s exactly like a missing one.
-  const habit = await prisma.habit.findFirst({ where: { id, userId } });
+  const habit = await prisma.habit.findFirst({
+    where: { id, userId },
+    include: { tags: { select: { id: true, name: true }, orderBy: { name: "asc" } } },
+  });
   if (!habit) {
     notFound();
   }
@@ -70,6 +73,19 @@ export default async function HabitDetailPage({ params, searchParams }: HabitDet
         </p>
         {habit.description ? (
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{habit.description}</p>
+        ) : null}
+        {habit.tags.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {habit.tags.map((tag) => (
+              <Link
+                key={tag.id}
+                href={`/?tag=${encodeURIComponent(tag.name)}`}
+                className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+              >
+                #{tag.name}
+              </Link>
+            ))}
+          </div>
         ) : null}
       </div>
 

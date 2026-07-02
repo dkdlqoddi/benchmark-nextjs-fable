@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUserId } from "@/lib/auth";
-import { Prisma } from "@/lib/generated/prisma/client";
 import { parseHabitForm, type HabitFormState } from "@/lib/habit-schema";
-import { prisma } from "@/lib/prisma";
+import { findOwnedHabit } from "@/lib/ownership";
+import { isPrismaErrorCode, prisma } from "@/lib/prisma";
 
 /** Builds the nested payload attaching normalized tag names to a habit (user-scoped). */
 function tagsConnectOrCreate(userId: string, names: readonly string[]) {
@@ -15,9 +15,13 @@ function tagsConnectOrCreate(userId: string, names: readonly string[]) {
   }));
 }
 
-/** Deletes the user's tags that no longer label any habit (post-mutation hygiene). */
-async function deleteOrphanTags(userId: string): Promise<void> {
-  await prisma.tag.deleteMany({ where: { userId, habits: { none: {} } } });
+/**
+ * The query deleting the user's tags that no longer label any habit
+ * (post-mutation hygiene). Returned un-awaited so it can run standalone or as
+ * one operation inside a $transaction.
+ */
+function deleteOrphanTags(userId: string) {
+  return prisma.tag.deleteMany({ where: { userId, habits: { none: {} } } });
 }
 
 /** Creates a habit owned by the signed-in user; returns per-field errors or redirects home. */
@@ -52,7 +56,7 @@ export async function updateHabit(
   }
 
   // Scoped lookup: someone else's habit id behaves exactly like a missing one.
-  const habit = await prisma.habit.findFirst({ where: { id: habitId, userId } });
+  const habit = await findOwnedHabit(userId, habitId);
   if (!habit) {
     return { status: "error", formError: "This habit no longer exists." };
   }
@@ -97,7 +101,7 @@ export async function restoreHabit(habitId: string): Promise<void> {
 export async function deleteHabit(habitId: string): Promise<void> {
   const userId = await requireUserId();
   // Scoped ownership gate: a foreign or unknown habit id is a silent no-op.
-  const habit = await prisma.habit.findFirst({ where: { id: habitId, userId } });
+  const habit = await findOwnedHabit(userId, habitId);
   if (!habit) {
     return;
   }
@@ -109,14 +113,12 @@ export async function deleteHabit(habitId: string): Promise<void> {
       prisma.habit.update({ where: { id: habitId }, data: { tags: { set: [] } } }),
       prisma.checkIn.deleteMany({ where: { habitId } }),
       prisma.habit.delete({ where: { id: habitId } }),
-      prisma.tag.deleteMany({ where: { userId, habits: { none: {} } } }),
+      deleteOrphanTags(userId),
     ]);
   } catch (error) {
     // A concurrent delete may have removed the habit after the gate; the
     // target state (habit gone) is already reached.
-    const isMissing =
-      error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
-    if (!isMissing) {
+    if (!isPrismaErrorCode(error, "P2025")) {
       throw error;
     }
   }

@@ -1,5 +1,5 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaClient } from "@/lib/generated/prisma/client";
+import { Prisma, PrismaClient } from "@/lib/generated/prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
@@ -16,4 +16,13 @@ export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
+}
+
+/**
+ * True when `error` is a known Prisma request error carrying the given code —
+ * the guard actions use to treat expected races ("P2002" unique violation,
+ * "P2025" record already gone) as the target state being reached.
+ */
+export function isPrismaErrorCode(error: unknown, code: string): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === code;
 }

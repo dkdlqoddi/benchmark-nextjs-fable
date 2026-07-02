@@ -99,15 +99,20 @@ components/
   features/                 # Domain components (HabitCard, HabitCalendar, HabitForm, AuthForm,
                             #   HabitStatsCard, ArchivedHabitCard, WeeklyCompletionChart, TopNav)
 lib/                        # Pure utilities + integration singletons
-  prisma.ts                 #   Shared PrismaClient (better-sqlite3 adapter, dev singleton)
+  prisma.ts                 #   Shared PrismaClient (better-sqlite3 adapter) + isPrismaErrorCode
+  ownership.ts              #   findOwnedHabit — the user-scoped gate every habit mutation uses
   auth-config.ts            #   Shared Auth.js base config (JWT, callbacks; no Prisma/bcrypt)
   auth.ts                   #   Full Auth.js init (credentials provider) + requireUserId()
   auth-schema.ts            #   Zod schemas + form parsing for login/signup
+  form-state.ts             #   Shared FormState/ParsedForm shapes + zod-issue → field mapping
   date.ts                   #   ALL date/timezone logic (Asia/Seoul day keys)
   streak.ts                 #   Pure streak math
   completion.ts             #   Pure weekly completion-rate math
+  target-days.ts            #   Target-day mask vocabulary (validation, walk helpers, labels)
   habit-schema.ts           #   Zod schema + form parsing for habit create/edit
   habit-colors.ts           #   The 8 preset habit colors (data)
+  tags.ts                   #   Tag limits + normalization/parsing
+  home-filters.ts           #   Home page ?tag=/?q= filter params
   theme.ts                  #   Theme preference model + pre-paint init script
   generated/prisma/         #   Generated Prisma client (gitignored; `prisma generate`)
 prisma/
@@ -253,6 +258,10 @@ verified in isolation:
 - `lib/auth-schema.ts` — zod schemas for login (non-empty password) and signup (8–72 chars —
   bcrypt only reads 72 bytes) plus `parseAuthForm`; emails are trimmed + lowercased, and the
   password is never echoed back in form state.
+- `lib/form-state.ts` — the shared form-action vocabulary both schema modules build on: the
+  generic `FormState<Field, Values>` shape consumed by `useActionState`, the `ParsedForm`
+  success/failure union returned by the parsers, and `firstIssuePerField` (zod issues → at most
+  one message per field, first issue wins).
 - `lib/theme.ts` — theme preference model (see §9).
 
 Pages are thin: they fetch rows with Prisma, call these pure functions, and render.
@@ -276,7 +285,10 @@ which is how the check-in toggle buttons and calendar day cells mutate without b
 components.
 
 **Server Actions** (project rule 2 — all mutations, no API routes). Every data action begins with
-`requireUserId()` and scopes its queries by that id:
+`requireUserId()` and scopes its queries by that id. The recurring steps are shared helpers:
+`findOwnedHabit` (`lib/ownership.ts`) is the scoped ownership gate, `isPrismaErrorCode`
+(`lib/prisma.ts`) recognizes expected races (P2002 unique violation, P2025 already-deleted), and
+the parse/error-state plumbing lives in `lib/form-state.ts` via the schema modules:
 
 | Action                 | File                   | Behavior                                                                                                                                                                                                                                                                                                    | Revalidates             |
 | ---------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |

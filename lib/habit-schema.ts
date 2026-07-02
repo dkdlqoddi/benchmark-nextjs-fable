@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { firstIssuePerField, type FormState, type ParsedForm } from "@/lib/form-state";
 import { isHabitColor } from "@/lib/habit-colors";
 import { MAX_TAG_LENGTH, MAX_TAGS_PER_HABIT, parseTagList } from "@/lib/tags";
 import { isTargetDaysMask } from "@/lib/target-days";
@@ -42,15 +43,9 @@ export type HabitFormValues = {
 };
 
 /** State returned by habit form server actions for useActionState. */
-export type HabitFormState = {
-  status: "idle" | "error";
-  fieldErrors?: Partial<Record<keyof HabitFormValues, string>>;
-  formError?: string;
-  values?: HabitFormValues;
-};
+export type HabitFormState = FormState<keyof HabitFormValues, HabitFormValues>;
 
-type ParsedHabitForm =
-  { success: true; data: z.output<typeof habitSchema> } | { success: false; state: HabitFormState };
+type ParsedHabitForm = ParsedForm<z.output<typeof habitSchema>, HabitFormState>;
 
 /**
  * Parses habit form data with `habitSchema`; on failure returns a form state
@@ -74,10 +69,12 @@ export function parseHabitForm(formData: FormData): ParsedHabitForm {
     return { success: true, data: result.data };
   }
 
-  const fieldErrors: HabitFormState["fieldErrors"] = {};
-  for (const issue of result.error.issues) {
-    const field = issue.path[0] as keyof HabitFormValues;
-    fieldErrors[field] ??= issue.message;
-  }
-  return { success: false, state: { status: "error", fieldErrors, values } };
+  return {
+    success: false,
+    state: {
+      status: "error",
+      fieldErrors: firstIssuePerField<keyof HabitFormValues>(result.error.issues),
+      values,
+    },
+  };
 }

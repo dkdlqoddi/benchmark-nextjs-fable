@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth";
 import { isFutureKey } from "@/lib/date";
-import { Prisma } from "@/lib/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { findOwnedHabit } from "@/lib/ownership";
+import { isPrismaErrorCode, prisma } from "@/lib/prisma";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -15,7 +15,7 @@ const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
  */
 async function toggleCheckIn(habitId: string, date: string): Promise<void> {
   const userId = await requireUserId();
-  const habit = await prisma.habit.findFirst({ where: { id: habitId, userId } });
+  const habit = await findOwnedHabit(userId, habitId);
   if (!habit) {
     return;
   }
@@ -27,9 +27,7 @@ async function toggleCheckIn(habitId: string, date: string): Promise<void> {
     } catch (error) {
       // A concurrent submit may have created it first; the unique violation
       // means the toggle target state is already reached.
-      const isUniqueViolation =
-        error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
-      if (!isUniqueViolation) {
+      if (!isPrismaErrorCode(error, "P2002")) {
         throw error;
       }
     }

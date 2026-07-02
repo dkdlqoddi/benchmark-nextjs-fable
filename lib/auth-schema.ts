@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { firstIssuePerField, type FormState, type ParsedForm } from "@/lib/form-state";
 
 const emailField = z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address."));
 
@@ -21,16 +22,9 @@ export const signupSchema = z.object({
 export type AuthFormValues = { email: string };
 
 /** State returned by the auth server actions for useActionState. */
-export type AuthFormState = {
-  status: "idle" | "error";
-  fieldErrors?: { email?: string; password?: string };
-  formError?: string;
-  values?: AuthFormValues;
-};
+export type AuthFormState = FormState<"email" | "password", AuthFormValues>;
 
-type ParsedAuthForm =
-  | { success: true; data: { email: string; password: string } }
-  | { success: false; state: AuthFormState };
+type ParsedAuthForm = ParsedForm<{ email: string; password: string }, AuthFormState>;
 
 /**
  * Parses a login/signup form against the given schema; on failure returns a
@@ -50,13 +44,13 @@ export function parseAuthForm(
     return { success: true, data: result.data };
   }
 
-  const fieldErrors: NonNullable<AuthFormState["fieldErrors"]> = {};
-  for (const issue of result.error.issues) {
-    const field = issue.path[0] as "email" | "password";
-    fieldErrors[field] ??= issue.message;
-  }
   return {
     success: false,
-    state: { status: "error", fieldErrors, values: { email: values.email } },
+    state: {
+      status: "error",
+      fieldErrors: firstIssuePerField<"email" | "password">(result.error.issues),
+      // Only the email is echoed back — passwords never round-trip into state.
+      values: { email: values.email },
+    },
   };
 }

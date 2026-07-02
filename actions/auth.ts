@@ -4,8 +4,7 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/lib/auth";
 import { loginSchema, parseAuthForm, signupSchema, type AuthFormState } from "@/lib/auth-schema";
-import { Prisma } from "@/lib/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { isPrismaErrorCode, prisma } from "@/lib/prisma";
 
 /** bcrypt cost factor for password hashing (matches the seed script). */
 const BCRYPT_ROUNDS = 10;
@@ -30,9 +29,7 @@ export async function signup(
   } catch (error) {
     // Unique violation: the email is already registered (or a concurrent
     // signup won the race) — report it on the field either way.
-    const isUniqueViolation =
-      error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
-    if (!isUniqueViolation) {
+    if (!isPrismaErrorCode(error, "P2002")) {
       throw error;
     }
     return {

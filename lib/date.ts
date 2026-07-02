@@ -35,6 +35,25 @@ export function isFutureKey(key: string): boolean {
   return key > todayKey();
 }
 
+/** Start (Sunday) of the calendar week containing the given key, matching the calendar UI. */
+export function startOfWeek(key: string): string {
+  const [year, month, day] = key.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return addDays(key, -weekday);
+}
+
+const shortLabelFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "short",
+  day: "numeric",
+});
+
+/** Compact label for a date key, e.g. "Jun 7". */
+export function shortDateLabel(key: string): string {
+  const [year, month, day] = key.split("-").map(Number);
+  return shortLabelFormatter.format(new Date(Date.UTC(year, month - 1, day)));
+}
+
 /** Number of days in the given month (month is 1-12). */
 export function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();

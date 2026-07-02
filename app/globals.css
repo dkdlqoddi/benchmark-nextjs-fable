@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* chart tokens — accent validated for both surfaces (dataviz six checks) */
+  --chart-accent: #0284c7;
+  --chart-grid: #e4e4e7; /* zinc-200 */
+  --chart-muted-text: #71717a; /* zinc-500 */
 }
 
 @theme inline {
@@ -16,6 +20,8 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --chart-grid: #27272a; /* zinc-800 */
+    --chart-muted-text: #a1a1aa; /* zinc-400 */
   }
 }
 

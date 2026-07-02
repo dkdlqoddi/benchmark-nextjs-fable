@@ -35,18 +35,19 @@ regardless of the server's TZ — see the helpers in `lib/date.ts`.
 
 ## npm scripts
 
-| Script                 | What it does                                        |
-| ---------------------- | --------------------------------------------------- |
-| `npm run dev`          | Start the development server on port 3000           |
-| `npm run build`        | Create a production build                           |
-| `npm run start`        | Serve the production build                          |
-| `npm run lint`         | Run ESLint                                          |
-| `npm run typecheck`    | Type-check with `tsc --noEmit`                      |
-| `npm run format`       | Format the codebase with Prettier                   |
-| `npm run format:check` | Check formatting without writing                    |
-| `npm run db:migrate`   | Apply Prisma migrations (creates the DB if missing) |
-| `npm run db:seed`      | Reset data and seed sample habits + check-ins       |
-| `npm run db:studio`    | Open Prisma Studio to browse the database           |
+| Script                  | What it does                                        |
+| ----------------------- | --------------------------------------------------- |
+| `npm run dev`           | Start the development server on port 3000           |
+| `npm run build`         | Create a production build                           |
+| `npm run start`         | Serve the production build                          |
+| `npm run lint`          | Run ESLint                                          |
+| `npm run typecheck`     | Type-check with `tsc --noEmit`                      |
+| `npm run format`        | Format the codebase with Prettier                   |
+| `npm run format:check`  | Check formatting without writing                    |
+| `npm run verify:streak` | Run the streak-calculation test cases               |
+| `npm run db:migrate`    | Apply Prisma migrations (creates the DB if missing) |
+| `npm run db:seed`       | Reset data and seed sample habits + check-ins       |
+| `npm run db:studio`     | Open Prisma Studio to browse the database           |
 
 ## Project structure
 

@@ -164,6 +164,22 @@ describe("currentMonth / parseMonth — Seoul month at a UTC month boundary", ()
   });
 });
 
+// Regression (p14): "I checked in at 11:55 PM, but the next morning it was
+// recorded under the next day's date."
+describe("regression: 11:55 PM check-ins at the Seoul midnight boundary", () => {
+  it("11:55 PM in Seoul still belongs to that day; minutes past midnight does not", () => {
+    expect(toDateKey(new Date("2026-07-01T14:55:00Z"))).toBe("2026-07-01"); // 23:55 KST July 1
+    expect(toDateKey(new Date("2026-07-01T15:05:00Z"))).toBe("2026-07-02"); // 00:05 KST July 2
+  });
+
+  it("11:55 PM for a user west of Seoul is already Seoul's next day (by design)", () => {
+    // 23:55 on July 1 in New York (UTC-4 in July) = 03:55 UTC = 12:55 KST on
+    // July 2: the app's single-timezone policy stores such a check-in under
+    // July 2 — the reported symptom, without any code defect.
+    expect(toDateKey(new Date("2026-07-02T03:55:00Z"))).toBe("2026-07-02");
+  });
+});
+
 describe("addMonths / monthParam — year boundaries", () => {
   it("crosses year boundaries in both directions", () => {
     expect(addMonths({ year: 2026, month: 12 }, 1)).toEqual({ year: 2027, month: 1 });

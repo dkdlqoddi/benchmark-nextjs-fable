@@ -123,6 +123,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <li key={habit.id}>
               <HabitCard
                 habit={habit}
+                today={today}
                 checkedToday={checkIns.length > 0}
                 isTargetToday={isTargetDate(habit.targetDays, today)}
               />

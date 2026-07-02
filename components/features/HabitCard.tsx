@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { toggleTodayCheckIn } from "@/actions/check-ins";
+import { toggleCheckInForDate } from "@/actions/check-ins";
 import { archiveHabit } from "@/actions/habits";
 import { Card } from "@/components/ui/Card";
 import type { Habit, Tag } from "@/lib/generated/prisma/client";
@@ -7,9 +7,16 @@ import { targetDaysLabel } from "@/lib/target-days";
 
 type HabitCardProps = {
   habit: Habit & { tags: Pick<Tag, "id" | "name">[] };
-  /** Whether the habit already has a check-in for today (app timezone). */
+  /**
+   * The date key this card was rendered for (todayKey() at render time). The
+   * toggle binds this exact key so a click always toggles the day the button
+   * displayed — even when the request is processed after Seoul midnight
+   * (stale tab, slow network). Never re-derive "today" at execution time here.
+   */
+  today: string;
+  /** Whether the habit already has a check-in for `today`. */
   checkedToday: boolean;
-  /** Whether today is one of the habit's target days; off-days dim the toggle. */
+  /** Whether `today` is one of the habit's target days; off-days dim the toggle. */
   isTargetToday: boolean;
 };
 
@@ -21,7 +28,7 @@ type HabitCardProps = {
  * are user data from the database, so they are applied as inline styles
  * rather than Tailwind tokens.
  */
-export function HabitCard({ habit, checkedToday, isTargetToday }: HabitCardProps) {
+export function HabitCard({ habit, today, checkedToday, isTargetToday }: HabitCardProps) {
   return (
     <Card className="flex h-full flex-col">
       <div className="flex items-center gap-3">
@@ -57,7 +64,7 @@ export function HabitCard({ habit, checkedToday, isTargetToday }: HabitCardProps
           ))}
         </div>
       ) : null}
-      <form action={toggleTodayCheckIn.bind(null, habit.id)} className="mt-4">
+      <form action={toggleCheckInForDate.bind(null, habit.id, today)} className="mt-4">
         <button
           type="submit"
           aria-pressed={checkedToday}

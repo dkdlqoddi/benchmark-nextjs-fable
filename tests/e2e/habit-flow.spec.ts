@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { todayKey } from "@/lib/date";
 import { createHabit, login, logout, signup, uniqueEmail } from "./helpers";
 
 test("full journey: signup → login → create habit → check in → view stats", async ({ page }) => {
@@ -49,4 +50,15 @@ test("full journey: signup → login → create habit → check in → view stat
   await statsCard.getByRole("link", { name: "Morning run" }).click();
   await expect(page.getByRole("heading", { name: "Morning run" })).toBeVisible();
   await expect(page.getByText(/1 check-in in/)).toBeVisible();
+
+  // Regression (p14): the mark sits on the Asia/Seoul date — computed here the
+  // same way the server computes it — and on no other day of the month. From
+  // 15:00 UTC to midnight UTC, Seoul's date differs from UTC's, so a check-in
+  // recorded under the wrong calendar day would fail this.
+  const seoulToday = todayKey();
+  const todayCell = page.getByRole("button", { name: `Toggle check-in for ${seoulToday}` });
+  await expect(todayCell).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("button", { name: /^Toggle check-in for /, pressed: true }),
+  ).toHaveCount(1);
 });

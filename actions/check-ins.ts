@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth";
-import { isFutureKey, todayKey } from "@/lib/date";
+import { isFutureKey } from "@/lib/date";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -39,13 +39,10 @@ async function toggleCheckIn(habitId: string, date: string): Promise<void> {
   revalidatePath(`/habits/${habitId}`);
 }
 
-/** Toggles today's check-in for one of the user's habits (the home card button). */
-export async function toggleTodayCheckIn(habitId: string): Promise<void> {
-  await toggleCheckIn(habitId, todayKey());
-}
-
 /**
- * Toggles the check-in of one calendar date (calendar cell click).
+ * Toggles the check-in of one calendar date (home card button and calendar
+ * cell click — both bind the date key they rendered, so a click toggles the
+ * day the user saw even when processed after Seoul midnight).
  * Rejects malformed keys and future dates server-side, mirroring the disabled UI.
  */
 export async function toggleCheckInForDate(habitId: string, date: string): Promise<void> {

@@ -24,6 +24,7 @@
 # testing
 /coverage
 /prisma/test.db*
+/prisma/unit-test.db*
 /test-results/
 /playwright-report/
 /blob-report/

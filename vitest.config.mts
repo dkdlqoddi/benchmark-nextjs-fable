@@ -10,6 +10,9 @@ export default defineConfig({
     include: ["tests/unit/**/*.test.ts"],
     // The app calendar is fixed to Asia/Seoul regardless of server timezone;
     // running the suite under a different TZ proves that independence.
-    env: { TZ: "America/New_York" },
+    // DATABASE_URL points the shared Prisma client at a scratch database so
+    // action-level tests (tests/unit/check-ins-action.test.ts) never touch
+    // dev.db; the file is reset by that test's beforeAll via `prisma db push`.
+    env: { TZ: "America/New_York", DATABASE_URL: "file:./prisma/unit-test.db" },
   },
 });

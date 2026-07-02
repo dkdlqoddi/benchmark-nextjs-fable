@@ -92,7 +92,7 @@ app/                        # Routes (App Router). Server Components only.
 proxy.ts                    # Route guard (Next 16's middleware): no session -> /login
 actions/                    # Server Actions — the ONLY place mutations happen
   habits.ts                 #   create / update / archive / restore / delete (user-scoped)
-  check-ins.ts              #   toggle today / toggle arbitrary date (user-scoped)
+  check-ins.ts              #   toggle the check-in of one rendered date key (user-scoped)
   auth.ts                   #   signup / login / logout (wrap Auth.js signIn/signOut)
 components/
   ui/                       # Generic, domain-free UI (Card, ConfirmForm, ThemeToggle)
@@ -278,18 +278,17 @@ components.
 **Server Actions** (project rule 2 — all mutations, no API routes). Every data action begins with
 `requireUserId()` and scopes its queries by that id:
 
-| Action                 | File                   | Behavior                                                                         | Revalidates             |
-| ---------------------- | ---------------------- | -------------------------------------------------------------------------------- | ----------------------- |
-| `createHabit`          | `actions/habits.ts`    | Zod-validate → create with `userId` → redirect `/`; field errors on failure      | `/`                     |
-| `updateHabit`          | `actions/habits.ts`    | Zod-validate → scoped ownership check → update → redirect `/`                    | `/`                     |
-| `archiveHabit`         | `actions/habits.ts`    | Scoped `updateMany` sets `archivedAt` (foreign id = no-op)                       | `/`, `/habits/archived` |
-| `restoreHabit`         | `actions/habits.ts`    | Scoped `updateMany` clears `archivedAt` (foreign id = no-op)                     | `/`, `/habits/archived` |
-| `deleteHabit`          | `actions/habits.ts`    | `$transaction`: scoped delete of check-ins, then habit                           | `/habits/archived`      |
-| `toggleTodayCheckIn`   | `actions/check-ins.ts` | Scoped ownership gate, then toggle (delete-then-create)                          | `/`, `/habits/[id]`     |
-| `toggleCheckInForDate` | `actions/check-ins.ts` | Same, for one calendar date; rejects malformed keys and future dates server-side | `/`, `/habits/[id]`     |
-| `signup`               | `actions/auth.ts`      | Zod-validate → bcrypt-hash → create user (P2002 = "email taken") → sign in       | —                       |
-| `login`                | `actions/auth.ts`      | `signIn("credentials")`; `AuthError` becomes a form error, success redirects `/` | —                       |
-| `logout`               | `actions/auth.ts`      | `signOut()`, redirects to `/login` (form button in `TopNav`)                     | —                       |
+| Action                 | File                   | Behavior                                                                                                                                                                                                                                                                                                    | Revalidates             |
+| ---------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `createHabit`          | `actions/habits.ts`    | Zod-validate → create with `userId` → redirect `/`; field errors on failure                                                                                                                                                                                                                                 | `/`                     |
+| `updateHabit`          | `actions/habits.ts`    | Zod-validate → scoped ownership check → update → redirect `/`                                                                                                                                                                                                                                               | `/`                     |
+| `archiveHabit`         | `actions/habits.ts`    | Scoped `updateMany` sets `archivedAt` (foreign id = no-op)                                                                                                                                                                                                                                                  | `/`, `/habits/archived` |
+| `restoreHabit`         | `actions/habits.ts`    | Scoped `updateMany` clears `archivedAt` (foreign id = no-op)                                                                                                                                                                                                                                                | `/`, `/habits/archived` |
+| `deleteHabit`          | `actions/habits.ts`    | `$transaction`: scoped delete of check-ins, then habit                                                                                                                                                                                                                                                      | `/habits/archived`      |
+| `toggleCheckInForDate` | `actions/check-ins.ts` | Scoped ownership gate, then toggle (delete-then-create) of one calendar date; rejects malformed keys and future dates server-side. The home card and the calendar cells both bind the date key they rendered, so a click toggles the day the user saw even if the request is processed after Seoul midnight | `/`, `/habits/[id]`     |
+| `signup`               | `actions/auth.ts`      | Zod-validate → bcrypt-hash → create user (P2002 = "email taken") → sign in                                                                                                                                                                                                                                  | —                       |
+| `login`                | `actions/auth.ts`      | `signIn("credentials")`; `AuthError` becomes a form error, success redirects `/`                                                                                                                                                                                                                            | —                       |
+| `logout`               | `actions/auth.ts`      | `signOut()`, redirects to `/login` (form button in `TopNav`)                                                                                                                                                                                                                                                | —                       |
 
 Validation is intentionally **server-only**: the habit and auth forms omit native validation
 attributes (`noValidate`) so the zod schemas stay the single source of truth, and the calendar's

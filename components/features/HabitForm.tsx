@@ -6,22 +6,24 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { HABIT_COLORS } from "@/lib/habit-colors";
 import type { HabitFormState } from "@/lib/habit-schema";
+import { EVERY_DAY, WEEKDAY_LABELS } from "@/lib/target-days";
 
 type HabitFormProps = {
   /** Server action handling the submit (createHabit or a bound updateHabit). */
   action: (prevState: HabitFormState, formData: FormData) => Promise<HabitFormState>;
   /** Current values when editing; omit for the create form. */
-  initialValues?: { name: string; description: string | null; color: string };
+  initialValues?: { name: string; description: string | null; color: string; targetDays: string };
   submitLabel: string;
 };
 
 const INITIAL_STATE: HabitFormState = { status: "idle" };
 
 /**
- * Shared create/edit habit form: name, optional description, and one of the
- * 8 preset colors. Server-side validation errors render under each field.
- * Native `required`/`maxLength` attributes are intentionally omitted so the
- * zod validation in the server action stays the single source of truth.
+ * Shared create/edit habit form: name, optional description, one of the
+ * 8 preset colors, and the target days of the week (≥1 required). Server-side
+ * validation errors render under each field. Native `required`/`maxLength`
+ * attributes are intentionally omitted so the zod validation in the server
+ * action stays the single source of truth.
  */
 export function HabitForm({ action, initialValues, submitLabel }: HabitFormProps) {
   const [state, formAction, pending] = useActionState(action, INITIAL_STATE);
@@ -31,6 +33,7 @@ export function HabitForm({ action, initialValues, submitLabel }: HabitFormProps
     name: state.values?.name ?? initialValues?.name ?? "",
     description: state.values?.description ?? initialValues?.description ?? "",
     color: state.values?.color || (initialValues?.color ?? HABIT_COLORS[0].value),
+    targetDays: state.values?.targetDays ?? initialValues?.targetDays ?? EVERY_DAY,
   };
 
   return (
@@ -99,6 +102,32 @@ export function HabitForm({ action, initialValues, submitLabel }: HabitFormProps
         </div>
         {state.fieldErrors?.color ? (
           <p className="text-sm text-red-600 dark:text-red-400">{state.fieldErrors.color}</p>
+        ) : null}
+      </fieldset>
+
+      <fieldset className="space-y-1.5">
+        <legend className="text-sm font-medium">Target days</legend>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Days this habit is due. Off-day check-ins still count, but streaks only track target days.
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {WEEKDAY_LABELS.map((label, day) => (
+            <label key={label} className="cursor-pointer">
+              <input
+                type="checkbox"
+                name="targetDays"
+                value={day}
+                defaultChecked={current.targetDays[day] === "1"}
+                className="peer sr-only"
+              />
+              <span className="block rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-600 transition-colors peer-checked:border-transparent peer-checked:bg-zinc-900 peer-checked:text-zinc-50 peer-focus-visible:ring-2 peer-focus-visible:ring-zinc-400 dark:border-zinc-700 dark:text-zinc-400 dark:peer-checked:bg-zinc-100 dark:peer-checked:text-zinc-900">
+                {label}
+              </span>
+            </label>
+          ))}
+        </div>
+        {state.fieldErrors?.targetDays ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{state.fieldErrors.targetDays}</p>
         ) : null}
       </fieldset>
 

@@ -7,13 +7,14 @@ import {
   todayKey,
   type YearMonth,
 } from "@/lib/date";
-
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+import { isTargetDate, WEEKDAY_LABELS } from "@/lib/target-days";
 
 type HabitCalendarProps = {
   habitId: string;
   /** Habit color used to fill checked dates (data-driven inline style). */
   color: string;
+  /** The habit's target-days mask; off-day cells render dimmed. */
+  targetDays: string;
   month: YearMonth;
   /** YYYY-MM-DD keys of this month's checked dates. */
   checkedDates: string[];
@@ -22,9 +23,17 @@ type HabitCalendarProps = {
 /**
  * Monthly check-in calendar. Past and today cells are submit buttons that
  * toggle that date's check-in via a server action; future cells are disabled.
- * Checked dates are filled with the habit's color.
+ * Checked dates are filled with the habit's color. Cells on days outside the
+ * habit's target days are dimmed but stay clickable (off-day check-ins are
+ * allowed — they just don't count toward streaks).
  */
-export function HabitCalendar({ habitId, color, month, checkedDates }: HabitCalendarProps) {
+export function HabitCalendar({
+  habitId,
+  color,
+  targetDays,
+  month,
+  checkedDates,
+}: HabitCalendarProps) {
   const checked = new Set(checkedDates);
   const today = todayKey();
   const leadingBlanks = firstWeekday(month.year, month.month);
@@ -33,8 +42,15 @@ export function HabitCalendar({ habitId, color, month, checkedDates }: HabitCale
   return (
     <div>
       <div className="grid grid-cols-7 gap-1 text-center">
-        {WEEKDAYS.map((weekday) => (
-          <div key={weekday} className="py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+        {WEEKDAY_LABELS.map((weekday, index) => (
+          <div
+            key={weekday}
+            className={`py-1 text-xs font-medium ${
+              targetDays[index] === "1"
+                ? "text-zinc-500 dark:text-zinc-400"
+                : "text-zinc-300 dark:text-zinc-600"
+            }`}
+          >
             {weekday}
           </div>
         ))}
@@ -47,14 +63,17 @@ export function HabitCalendar({ habitId, color, month, checkedDates }: HabitCale
           const isChecked = checked.has(key);
           const isToday = key === today;
           const isFuture = isFutureKey(key);
+          const isTarget = isTargetDate(targetDays, key);
 
           const base =
             "mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors";
           const state = isChecked
-            ? "font-semibold text-white"
+            ? `font-semibold text-white${isTarget ? "" : " opacity-60"}`
             : isFuture
               ? "text-zinc-300 dark:text-zinc-700"
-              : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800";
+              : isTarget
+                ? "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:bg-zinc-800";
           const todayRing = isToday
             ? " ring-2 ring-zinc-400 ring-offset-1 ring-offset-white dark:ring-zinc-500 dark:ring-offset-zinc-950"
             : "";

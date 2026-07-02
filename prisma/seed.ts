@@ -11,6 +11,7 @@ const prisma = new PrismaClient({ adapter });
 /** Shared password of both test accounts. */
 const PASSWORD = "password123";
 
+// targetDays: 7-char 0/1 mask, index 0 = Sunday … 6 = Saturday.
 const ACCOUNTS = [
   {
     email: "alice@test.com",
@@ -19,16 +20,19 @@ const ACCOUNTS = [
         name: "Morning Run",
         description: "Run for at least 20 minutes before starting the day.",
         color: "#10b981",
+        targetDays: "0101010", // Mon / Wed / Fri
       },
       {
         name: "Read 20 Pages",
         description: "Any book counts — fiction, non-fiction, or technical.",
         color: "#3b82f6",
+        targetDays: "1111111", // every day
       },
       {
         name: "Meditate",
         description: null,
         color: "#f59e0b",
+        targetDays: "0111110", // weekdays
       },
     ],
   },
@@ -39,16 +43,19 @@ const ACCOUNTS = [
         name: "Gym Session",
         description: "Strength or cardio, at least 45 minutes.",
         color: "#ef4444",
+        targetDays: "0010101", // Tue / Thu / Sat
       },
       {
         name: "Journal",
         description: "Three sentences about the day.",
         color: "#8b5cf6",
+        targetDays: "1111111", // every day
       },
       {
         name: "Drink 2L Water",
         description: null,
         color: "#0ea5e9",
+        targetDays: "1111111", // every day
       },
     ],
   },

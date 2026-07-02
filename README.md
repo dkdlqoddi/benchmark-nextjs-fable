@@ -44,6 +44,10 @@ for local development (set a real `AUTH_SECRET` in any deployment).
 Check-in dates ("today", the calendar) are fixed to the **Asia/Seoul** timezone
 regardless of the server's TZ — see the helpers in `lib/date.ts`.
 
+Each habit has **target days of the week** (e.g. Mon/Wed/Fri; default: every day).
+Off-day check-ins are allowed — the check-in UI is just dimmed — but streaks count
+target days only (`lib/target-days.ts`, `lib/streak.ts`).
+
 Dark mode: use the Light / Dark / Auto toggle in the top navigation. "Auto"
 follows the OS; the choice persists in `localStorage` and applies before first
 paint (no flash).

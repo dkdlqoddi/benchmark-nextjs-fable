@@ -36,6 +36,7 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
           name: habit.name,
           description: habit.description,
           color: habit.color,
+          targetDays: habit.targetDays,
         }}
         submitLabel="Save changes"
       />

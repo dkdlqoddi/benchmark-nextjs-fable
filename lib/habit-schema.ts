@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isHabitColor } from "@/lib/habit-colors";
+import { isTargetDaysMask } from "@/lib/target-days";
 
 /** Server-side validation schema for the habit create/edit form. */
 export const habitSchema = z.object({
@@ -14,6 +15,7 @@ export const habitSchema = z.object({
     .max(200, "Description must be at most 200 characters.")
     .transform((value) => (value === "" ? null : value)),
   color: z.string().refine(isHabitColor, "Choose one of the preset colors."),
+  targetDays: z.string().refine(isTargetDaysMask, "Pick at least one target day."),
 });
 
 /** Raw string values submitted from the habit form, echoed back on error. */
@@ -21,6 +23,8 @@ export type HabitFormValues = {
   name: string;
   description: string;
   color: string;
+  /** 7-char 0/1 mask built from the target-day checkboxes (0 = Sunday). */
+  targetDays: string;
 };
 
 /** State returned by habit form server actions for useActionState. */
@@ -39,10 +43,15 @@ type ParsedHabitForm =
  * carrying one message per invalid field plus the submitted values.
  */
 export function parseHabitForm(formData: FormData): ParsedHabitForm {
+  // The 7 target-day checkboxes (values "0".."6") fold into the mask string.
+  const selectedDays = new Set(formData.getAll("targetDays").map(String));
   const values: HabitFormValues = {
     name: String(formData.get("name") ?? ""),
     description: String(formData.get("description") ?? ""),
     color: String(formData.get("color") ?? ""),
+    targetDays: Array.from({ length: 7 }, (_, day) =>
+      selectedDays.has(String(day)) ? "1" : "0",
+    ).join(""),
   };
 
   const result = habitSchema.safeParse(values);

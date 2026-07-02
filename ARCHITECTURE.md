@@ -172,7 +172,8 @@ Next 16 specifics used here: `params` and `searchParams` are Promises and are aw
 ```
 User     id (cuid) · email (unique, lowercase) · passwordHash (bcrypt) · createdAt · habits[]
 Habit    id (cuid) · userId (FK → User, onDelete: Cascade, indexed) · name · description? ·
-         color (hex string) · createdAt · archivedAt? · checkIns[]
+         color (hex string) · targetDays (7-char 0/1 mask, default "1111111") · createdAt ·
+         archivedAt? · checkIns[]
 CheckIn  id (cuid) · habitId (FK → Habit, onDelete: Cascade) · date (string "YYYY-MM-DD") · createdAt
          @@unique([habitId, date])
 ```
@@ -183,6 +184,11 @@ Deliberate modeling choices:
   its habit, so check-in scoping always goes through the habit (`habit: { userId }` relation
   filters, or an ownership `findFirst` before touching check-ins). One source of truth, no
   possibility of a check-in whose owner disagrees with its habit's owner.
+- **Target days are a 7-char 0/1 mask** (`targetDays`, index 0 = Sunday — the same weekday
+  numbering as `lib/date.ts`), validated to have ≥ 1 target day (`lib/target-days.ts`). The
+  column default `"1111111"` (every day) is also the migration story: existing rows were
+  backfilled by the default when the column was added. Check-ins on off-days are allowed ("bonus"
+  check-ins, dimmed UI) — they count in `total` but streaks skip them.
 - **`CheckIn.date` is a `YYYY-MM-DD` string, not a `DateTime`.** A check-in belongs to a calendar
   day in the app timezone; storing the day key makes day identity timezone-proof and makes
   lexicographic comparison equal to chronological comparison (used by range queries and the pure
@@ -209,8 +215,16 @@ verified in isolation:
   (`en-CA` → `YYYY-MM-DD`). Provides `todayKey`, `dateKey`, `addDays`, `startOfWeek` (Sunday, to
   match the calendar UI), `isFutureKey`, month arithmetic (`parseMonth`, `addMonths`,
   `monthParam`, `monthLabel`), and label formatters. Never compute "today" or a date key ad hoc.
-- `lib/streak.ts` — `currentStreak` (run ending today, or yesterday when today is unchecked),
-  `longestStreak`, `computeStreaks`. Pure: `today` is a parameter, which is what makes
+- `lib/target-days.ts` — the target-days mask vocabulary: validation (`isTargetDaysMask`),
+  per-date checks (`isTargetDate`), the walk helpers streaks are built on
+  (`latestTargetDayOnOrBefore`, `previousTargetDay`, `nextTargetDay` — all terminate because a
+  valid mask has ≥ 1 target day), and the human label (`targetDaysLabel`).
+- `lib/streak.ts` — streaks count **target days only**: `currentStreak` is the run of
+  consecutively checked target days ending at the latest target day on or before today (or at the
+  previous target day when today's target is still unchecked — today isn't over yet);
+  `longestStreak` runs over target days linked by `nextTargetDay`. Off-day check-ins neither
+  extend nor break runs. With an every-day mask this reduces exactly to the old today-or-yesterday
+  rule. Pure: `today` and the mask are parameters, which is what makes
   `scripts/verify-streak.ts` deterministic.
 - `lib/completion.ts` — `weeklyCompletionRates` for the last N Sunday-start weeks;
   `possible = habits × elapsed days`, so the current week is capped at days elapsed so far.
@@ -325,7 +339,8 @@ kept verbatim (Prettier-ignored).
 
 The short list to keep in mind when changing anything:
 
-1. Dates are `YYYY-MM-DD` strings in Asia/Seoul, produced only by `lib/date.ts` helpers.
+1. Dates are `YYYY-MM-DD` strings in Asia/Seoul, produced only by `lib/date.ts` helpers; weekday
+   numbering is 0 = Sunday everywhere (`lib/date.ts` and the `targetDays` mask agree).
 2. Database access goes through `@/lib/prisma`; mutations live only in `actions/`.
 3. **Every habit/check-in query and mutation is scoped by the session user id** (via
    `requireUserId()` / `auth()`): pages use `findFirst({ where: { id, userId } })` → `notFound()`,

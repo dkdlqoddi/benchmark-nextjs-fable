@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { auth, requireUserId } from "@/lib/auth";
 import { addMonths, dateKey, daysInMonth, monthLabel, monthParam, parseMonth } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { EVERY_DAY, targetDaysLabel } from "@/lib/target-days";
 
 // Check-ins change at runtime, so always render per-request.
 export const dynamic = "force-dynamic";
@@ -64,6 +65,9 @@ export default async function HabitDetailPage({ params, searchParams }: HabitDet
           />
           <h1 className="truncate text-2xl font-bold tracking-tight">{habit.name}</h1>
         </div>
+        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+          Target days: {targetDaysLabel(habit.targetDays)}
+        </p>
         {habit.description ? (
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{habit.description}</p>
         ) : null}
@@ -90,12 +94,14 @@ export default async function HabitDetailPage({ params, searchParams }: HabitDet
         <HabitCalendar
           habitId={habit.id}
           color={habit.color}
+          targetDays={habit.targetDays}
           month={month}
           checkedDates={checkIns.map((checkIn) => checkIn.date)}
         />
         <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
           {checkIns.length} check-in{checkIns.length === 1 ? "" : "s"} in {monthLabel(month)} ·
           click a past day to toggle it
+          {habit.targetDays === EVERY_DAY ? "" : " · dimmed days are off-days"}
         </p>
       </Card>
 

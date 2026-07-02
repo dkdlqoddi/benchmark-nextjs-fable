@@ -3,6 +3,7 @@ import { HabitCard } from "@/components/features/HabitCard";
 import { requireUserId } from "@/lib/auth";
 import { todayKey } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { isTargetDate } from "@/lib/target-days";
 
 // Habit data changes at runtime, so always render this page per-request.
 export const dynamic = "force-dynamic";
@@ -47,7 +48,11 @@ export default async function Home() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {habits.map(({ checkIns, ...habit }) => (
             <li key={habit.id}>
-              <HabitCard habit={habit} checkedToday={checkIns.length > 0} />
+              <HabitCard
+                habit={habit}
+                checkedToday={checkIns.length > 0}
+                isTargetToday={isTargetDate(habit.targetDays, today)}
+              />
             </li>
           ))}
         </ul>

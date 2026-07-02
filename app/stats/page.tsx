@@ -70,6 +70,7 @@ export default async function StatsPage() {
                 stats={computeStreaks(
                   checkIns.map((checkIn) => checkIn.date),
                   today,
+                  habit.targetDays,
                 )}
               />
             </li>

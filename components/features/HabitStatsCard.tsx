@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import type { Habit } from "@/lib/generated/prisma/client";
 import type { StreakStats } from "@/lib/streak";
+import { targetDaysLabel } from "@/lib/target-days";
 
 type HabitStatsCardProps = {
   habit: Habit;
@@ -25,9 +26,9 @@ function StatTile({ label, value, unit }: { label: string; value: number; unit?:
 
 /**
  * Stats card for one habit: identity row (color swatch + name linking to the
- * calendar) above current streak / longest streak / total check-in tiles.
- * Values stay in text ink; only the swatch carries the habit color (data-driven
- * inline style).
+ * calendar) and the target-day label above current streak / longest streak /
+ * total check-in tiles. Streak tiles count target days only. Values stay in
+ * text ink; only the swatch carries the habit color (data-driven inline style).
  */
 export function HabitStatsCard({ habit, stats }: HabitStatsCardProps) {
   return (
@@ -44,6 +45,9 @@ export function HabitStatsCard({ habit, stats }: HabitStatsCardProps) {
           </Link>
         </h2>
       </div>
+      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+        {targetDaysLabel(habit.targetDays)}
+      </p>
       <dl className="mt-4 grid grid-cols-3 gap-4">
         <StatTile
           label="Current streak"

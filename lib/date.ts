@@ -35,11 +35,15 @@ export function isFutureKey(key: string): boolean {
   return key > todayKey();
 }
 
+/** Weekday of a YYYY-MM-DD key (0 = Sunday … 6 = Saturday). */
+export function weekday(key: string): number {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
 /** Start (Sunday) of the calendar week containing the given key, matching the calendar UI. */
 export function startOfWeek(key: string): string {
-  const [year, month, day] = key.split("-").map(Number);
-  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  return addDays(key, -weekday);
+  return addDays(key, -weekday(key));
 }
 
 const shortLabelFormatter = new Intl.DateTimeFormat("en-US", {

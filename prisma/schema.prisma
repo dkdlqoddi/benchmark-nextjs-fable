@@ -21,7 +21,9 @@ model User {
 /// `description` at most 200 chars (`color` is a hex string) — length rules
 /// are enforced in the validation layer, since SQLite has no length-limited
 /// string types. Every habit belongs to exactly one user; all queries must
-/// filter by `userId`.
+/// filter by `userId`. `targetDays` is a 7-char 0/1 mask (index 0 = Sunday …
+/// 6 = Saturday, ≥1 target day — validated in lib/target-days.ts); the
+/// default means "every day".
 model Habit {
   id          String    @id @default(cuid())
   userId      String
@@ -29,6 +31,7 @@ model Habit {
   name        String
   description String?
   color       String
+  targetDays  String    @default("1111111")
   createdAt   DateTime  @default(now())
   archivedAt  DateTime?
   checkIns    CheckIn[]

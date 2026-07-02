@@ -116,8 +116,11 @@ prisma/
   seed.ts                   # Reset + seed the 2 test accounts (`npm run db:seed`)
   dev.db                    # SQLite database file (gitignored)
 prisma.config.ts            # Prisma CLI config: schema/migrations paths, seed cmd, datasource URL
-scripts/
-  verify-streak.ts          # Executable spec for lib/streak.ts (`npm run verify:streak`)
+tests/
+  unit/                     # Vitest unit tests: streak/date math, zod schemas (`npm test`)
+  e2e/                      # Playwright E2E tests + fixtures (`npm run test:e2e`)
+vitest.config.mts           # Vitest config (node env, tests/unit only)
+playwright.config.ts        # Playwright config (prisma/test.db, prod build via webServer)
 bench-reports/              # Per-task work reports (process artifacts, not app code)
 ```
 
@@ -233,7 +236,7 @@ verified in isolation:
   `longestStreak` runs over target days linked by `nextTargetDay`. Off-day check-ins neither
   extend nor break runs. With an every-day mask this reduces exactly to the old today-or-yesterday
   rule. Pure: `today` and the mask are parameters, which is what makes
-  `scripts/verify-streak.ts` deterministic.
+  `tests/unit/streak.test.ts` deterministic.
 - `lib/completion.ts` — `weeklyCompletionRates` for the last N Sunday-start weeks;
   `possible = habits × elapsed days`, so the current week is capped at days elapsed so far.
 - `lib/habit-schema.ts` — the zod schema for the habit form plus `parseHabitForm`, which maps zod
@@ -335,14 +338,17 @@ npm run db:seed      # reset data; 2 test accounts (alice@test.com / bob@test.co
 npm run dev          # http://localhost:3000 — log in as a seeded account or sign up
 ```
 
-Quality gates (all must pass; there is no unit-test framework):
+Quality gates (all must pass):
 
 - `npm run typecheck` — `tsc --noEmit`, strict mode.
 - `npm run lint` — ESLint 9 flat config (`eslint-config-next` core-web-vitals + TypeScript,
   Prettier-conflicting rules off, `lib/generated/` ignored).
 - `npm run format:check` — Prettier (printWidth 100; `bench-reports/` and generated files ignored).
-- `npm run verify:streak` — executable spec for the streak math (fixed `today`, spec + edge cases,
-  non-zero exit on failure).
+- `npm test` — Vitest unit tests (`tests/unit/`): the streak spec (fixed `today`, target-day +
+  year-boundary + leap-day cases), `lib/date.ts` timezone boundaries, and the zod schemas.
+- `npm run test:e2e` — Playwright E2E tests (`tests/e2e/`), headless Chromium against a production
+  build on port 3100 with an isolated database (`prisma/test.db`, reset per run — never
+  `dev.db`). Covers the signup → login → habit → check-in → stats flow and cross-user isolation.
 
 Other conventions: every exported function carries at least one line of JSDoc (project rule 6);
 `package.json#allowScripts` allowlists the packages permitted to run install scripts (Prisma

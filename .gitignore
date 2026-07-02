@@ -23,6 +23,10 @@
 
 # testing
 /coverage
+/prisma/test.db*
+/test-results/
+/playwright-report/
+/blob-report/
 
 # next.js
 /.next/

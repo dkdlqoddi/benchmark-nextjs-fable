@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HabitCalendar } from "@/components/features/HabitCalendar";
 import { Card } from "@/components/ui/Card";
+import { auth, requireUserId } from "@/lib/auth";
 import { addMonths, dateKey, daysInMonth, monthLabel, monthParam, parseMonth } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
@@ -14,17 +15,24 @@ type HabitDetailProps = {
   searchParams: Promise<{ month?: string }>;
 };
 
-/** Uses the habit's name as the page title. */
+/** Uses the habit's name as the page title — only if the habit is the user's own. */
 export async function generateMetadata({ params }: HabitDetailProps): Promise<Metadata> {
-  const { id } = await params;
-  const habit = await prisma.habit.findUnique({ where: { id }, select: { name: true } });
+  const [{ id }, session] = await Promise.all([params, auth()]);
+  const habit = session?.user
+    ? await prisma.habit.findFirst({
+        where: { id, userId: session.user.id },
+        select: { name: true },
+      })
+    : null;
   return { title: habit?.name ?? "Habit" };
 }
 
 /** Habit detail page: monthly check-in calendar with prev/next navigation. */
 export default async function HabitDetailPage({ params, searchParams }: HabitDetailProps) {
+  const userId = await requireUserId();
   const [{ id }, { month: monthQuery }] = await Promise.all([params, searchParams]);
-  const habit = await prisma.habit.findUnique({ where: { id } });
+  // Scoped lookup: another user's habit id 404s exactly like a missing one.
+  const habit = await prisma.habit.findFirst({ where: { id, userId } });
   if (!habit) {
     notFound();
   }

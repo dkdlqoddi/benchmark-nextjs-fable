@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { updateHabit } from "@/actions/habits";
 import { HabitForm } from "@/components/features/HabitForm";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // Always read the habit fresh so the form shows current values.
@@ -11,10 +12,12 @@ export const metadata: Metadata = {
   title: "Edit habit",
 };
 
-/** Page for editing an existing habit, reusing the shared habit form. */
+/** Page for editing one of the user's habits, reusing the shared habit form. */
 export default async function EditHabitPage({ params }: { params: Promise<{ id: string }> }) {
+  const userId = await requireUserId();
   const { id } = await params;
-  const habit = await prisma.habit.findUnique({ where: { id } });
+  // Scoped lookup: another user's habit id 404s exactly like a missing one.
+  const habit = await prisma.habit.findFirst({ where: { id, userId } });
   if (!habit) {
     notFound();
   }

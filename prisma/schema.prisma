@@ -7,18 +7,33 @@ datasource db {
   provider = "sqlite"
 }
 
+/// An account that owns habits. `email` is the login identifier (stored
+/// lowercase); `passwordHash` is a bcrypt hash — never the plain password.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  habits       Habit[]
+}
+
 /// A habit the user wants to build. `name` must be 1-50 chars and
 /// `description` at most 200 chars (`color` is a hex string) — length rules
 /// are enforced in the validation layer, since SQLite has no length-limited
-/// string types.
+/// string types. Every habit belongs to exactly one user; all queries must
+/// filter by `userId`.
 model Habit {
   id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   description String?
   color       String
   createdAt   DateTime  @default(now())
   archivedAt  DateTime?
   checkIns    CheckIn[]
+
+  @@index([userId])
 }
 
 /// One completed day for a habit. `date` is a YYYY-MM-DD string; a habit can

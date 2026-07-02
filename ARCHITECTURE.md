@@ -6,13 +6,16 @@ the project. For setup instructions see `README.md`; for the binding project rul
 
 ## 1. System overview
 
-HabitLog is a single-user habit tracker: create habits, check in at most once per day per habit,
+HabitLog is a multi-account habit tracker: create habits, check in at most once per day per habit,
 browse a monthly check-in calendar, and view streaks and weekly completion stats. It is a
 server-rendered Next.js (App Router) application with a local SQLite database accessed through
-Prisma. There is no separate backend service and no authentication — pages are React Server
-Components that query the database directly, and every mutation is a Server Action invoked from a
-`<form>`. Client-side JavaScript is limited to four small islands (form error display, a confirm
-dialog, the theme toggle, and the stats chart).
+Prisma. Authentication is Auth.js (NextAuth v5) with a credentials provider (email + bcrypt-hashed
+password, JWT session cookie); every habit and check-in belongs to exactly one user, and every
+query and mutation is scoped by the session's user id. There is no separate backend service —
+pages are React Server Components that query the database directly, and every mutation (including
+login/signup/logout) is a Server Action invoked from a `<form>`. Client-side JavaScript is limited
+to five small islands (two form-state islands, a confirm dialog, the theme toggle, and the stats
+chart).
 
 ## 2. Tech stack
 
@@ -22,6 +25,7 @@ dialog, the theme toggle, and the stats chart).
 | Language   | TypeScript (strict)                                              | `@/*` path alias maps to the repository root                               |
 | Styling    | Tailwind CSS **4** (CSS-first config via `@tailwindcss/postcss`) | Class-based dark mode; design tokens as CSS variables in `app/globals.css` |
 | ORM / DB   | Prisma **7.8** on SQLite (`./prisma/dev.db`)                     | `better-sqlite3` driver adapter; client generated into `lib/generated/`    |
+| Auth       | Auth.js / NextAuth **v5** (credentials) + `bcryptjs`             | JWT sessions; route guard in `proxy.ts`; config split in `lib/auth*.ts`    |
 | Validation | Zod **4**                                                        | Single source of truth for habit form validation (`lib/habit-schema.ts`)   |
 | Charts     | Recharts **3**                                                   | Weekly completion bar chart on `/stats`                                    |
 | Tooling    | npm, ESLint 9 (flat config), Prettier 3, `tsx` for scripts       | `postinstall` runs `prisma generate`                                       |
@@ -53,9 +57,16 @@ WRITE (form submit)
 
 Key properties of this flow:
 
-- **No API routes, no route handlers, no middleware/proxy.** The only entry points are pages and
-  Server Actions (project rule 2). There is also no client-side data fetching — no `fetch`, SWR,
-  or React Query anywhere in app code.
+- **No API routes, no route handlers.** The only entry points are pages and Server Actions
+  (project rule 2) — even Auth.js runs without its catch-all API route, because `signIn`/`signOut`
+  are only called inside server actions. There is also no client-side data fetching — no `fetch`,
+  SWR, or React Query anywhere in app code.
+- **Two-layer access control.** `proxy.ts` (Next 16's renamed middleware) redirects every
+  request without a session cookie to `/login` (only `/login` and `/signup` are public) — an
+  optimistic, DB-free check per the framework guidance. Real authorization happens in the data
+  layer: pages and actions resolve the user via `requireUserId()` / `auth()` and scope every
+  Prisma query by `userId`, so a foreign habit id behaves exactly like a missing one (404 /
+  no-op) even if a request gets past the proxy.
 - **Progressive enhancement.** Check-in toggles, archive/restore, and delete are plain `<form>`
   posts bound to Server Actions (`action={fn.bind(null, id)}`) rendered by Server Components —
   they work before/without client JavaScript. Only the habit form, confirm dialog, theme toggle,
@@ -72,19 +83,26 @@ app/                        # Routes (App Router). Server Components only.
   page.tsx                  #   Home: active habits + today's check-in toggle
   stats/page.tsx            #   Streak tiles + weekly completion chart
   settings/page.tsx         #   Placeholder
+  login/page.tsx            #   Credentials sign-in (public)
+  signup/page.tsx           #   Account creation + auto sign-in (public)
   habits/new/page.tsx       #   Create form
   habits/[id]/page.tsx      #   Monthly calendar (?month=YYYY-MM)
   habits/[id]/edit/page.tsx #   Edit form
   habits/archived/page.tsx  #   Restore / permanent delete
+proxy.ts                    # Route guard (Next 16's middleware): no session -> /login
 actions/                    # Server Actions — the ONLY place mutations happen
-  habits.ts                 #   create / update / archive / restore / delete
-  check-ins.ts              #   toggle today / toggle arbitrary date
+  habits.ts                 #   create / update / archive / restore / delete (user-scoped)
+  check-ins.ts              #   toggle today / toggle arbitrary date (user-scoped)
+  auth.ts                   #   signup / login / logout (wrap Auth.js signIn/signOut)
 components/
   ui/                       # Generic, domain-free UI (Card, ConfirmForm, ThemeToggle)
-  features/                 # Domain components (HabitCard, HabitCalendar, HabitForm,
+  features/                 # Domain components (HabitCard, HabitCalendar, HabitForm, AuthForm,
                             #   HabitStatsCard, ArchivedHabitCard, WeeklyCompletionChart, TopNav)
 lib/                        # Pure utilities + integration singletons
   prisma.ts                 #   Shared PrismaClient (better-sqlite3 adapter, dev singleton)
+  auth-config.ts            #   Shared Auth.js base config (JWT, callbacks; no Prisma/bcrypt)
+  auth.ts                   #   Full Auth.js init (credentials provider) + requireUserId()
+  auth-schema.ts            #   Zod schemas + form parsing for login/signup
   date.ts                   #   ALL date/timezone logic (Asia/Seoul day keys)
   streak.ts                 #   Pure streak math
   completion.ts             #   Pure weekly completion-rate math
@@ -93,9 +111,9 @@ lib/                        # Pure utilities + integration singletons
   theme.ts                  #   Theme preference model + pre-paint init script
   generated/prisma/         #   Generated Prisma client (gitignored; `prisma generate`)
 prisma/
-  schema.prisma             # Data model (Habit, CheckIn)
+  schema.prisma             # Data model (User, Habit, CheckIn)
   migrations/               # SQL migrations (applied with `npm run db:migrate`)
-  seed.ts                   # Reset + seed 3 sample habits (`npm run db:seed`)
+  seed.ts                   # Reset + seed the 2 test accounts (`npm run db:seed`)
   dev.db                    # SQLite database file (gitignored)
 prisma.config.ts            # Prisma CLI config: schema/migrations paths, seed cmd, datasource URL
 scripts/
@@ -117,6 +135,13 @@ docs (`README.md`, `CLAUDE.md`, `AGENTS.md`, this file) follow ecosystem-convent
 | `/habits/[id]/edit` | `app/habits/[id]/edit/page.tsx` | `force-dynamic` | Edit form pre-filled from the database           |
 | `/habits/archived`  | `app/habits/archived/page.tsx`  | `force-dynamic` | Archived list with restore / delete              |
 | `/settings`         | `app/settings/page.tsx`         | static          | Placeholder                                      |
+| `/login`            | `app/login/page.tsx`            | static          | Credentials sign-in (public)                     |
+| `/signup`           | `app/signup/page.tsx`           | static          | Account creation, signs straight in (public)     |
+
+All routes except `/login` and `/signup` require a session (enforced by `proxy.ts`, re-checked by
+`requireUserId()` in every data-reading page); signed-in users are bounced off the auth pages back
+to `/`. "Static" is nominal — the session-aware `TopNav` in the root layout reads cookies, so in
+practice every route renders dynamically.
 
 Rendering/caching strategy: **Cache Components is not enabled** (`next.config.ts` is empty), so
 this app uses the classic model in which routes are statically prerendered unless made dynamic.
@@ -145,13 +170,19 @@ Next 16 specifics used here: `params` and `searchParams` are Promises and are aw
 **Data model** (`prisma/schema.prisma`):
 
 ```
-Habit    id (cuid) · name · description? · color (hex string) · createdAt · archivedAt? · checkIns[]
+User     id (cuid) · email (unique, lowercase) · passwordHash (bcrypt) · createdAt · habits[]
+Habit    id (cuid) · userId (FK → User, onDelete: Cascade, indexed) · name · description? ·
+         color (hex string) · createdAt · archivedAt? · checkIns[]
 CheckIn  id (cuid) · habitId (FK → Habit, onDelete: Cascade) · date (string "YYYY-MM-DD") · createdAt
          @@unique([habitId, date])
 ```
 
 Deliberate modeling choices:
 
+- **Ownership is one FK deep.** `CheckIn` has no `userId` of its own — it belongs to whoever owns
+  its habit, so check-in scoping always goes through the habit (`habit: { userId }` relation
+  filters, or an ownership `findFirst` before touching check-ins). One source of truth, no
+  possibility of a check-in whose owner disagrees with its habit's owner.
 - **`CheckIn.date` is a `YYYY-MM-DD` string, not a `DateTime`.** A check-in belongs to a calendar
   day in the app timezone; storing the day key makes day identity timezone-proof and makes
   lexicographic comparison equal to chronological comparison (used by range queries and the pure
@@ -188,18 +219,22 @@ verified in isolation:
   `useActionState`-compatible `HabitFormState` shape).
 - `lib/habit-colors.ts` — the 8 preset colors as data, with the `isHabitColor` guard the schema
   uses.
+- `lib/auth-schema.ts` — zod schemas for login (non-empty password) and signup (8–72 chars —
+  bcrypt only reads 72 bytes) plus `parseAuthForm`; emails are trimmed + lowercased, and the
+  password is never echoed back in form state.
 - `lib/theme.ts` — theme preference model (see §9).
 
 Pages are thin: they fetch rows with Prisma, call these pure functions, and render.
 
 ## 8. Components and mutations
 
-**Server Components by default** (project rule 1). Exactly four components are client components,
+**Server Components by default** (project rule 1). Exactly five components are client components,
 each opening with a one-line comment justifying why:
 
 | Component                                       | Why it must be client                                               |
 | ----------------------------------------------- | ------------------------------------------------------------------- |
 | `components/features/HabitForm.tsx`             | `useActionState` for per-field server errors + pending state        |
+| `components/features/AuthForm.tsx`              | Same — shared login/signup form                                     |
 | `components/ui/ConfirmForm.tsx`                 | Intercepts submit with `window.confirm` before a destructive action |
 | `components/ui/ThemeToggle.tsx`                 | Reads/writes `localStorage`, `matchMedia`, `useSyncExternalStore`   |
 | `components/features/WeeklyCompletionChart.tsx` | Recharts measures the DOM and drives the hover tooltip              |
@@ -209,21 +244,35 @@ each opening with a one-line comment justifying why:
 which is how the check-in toggle buttons and calendar day cells mutate without being client
 components.
 
-**Server Actions** (project rule 2 — all mutations, no API routes):
+**Server Actions** (project rule 2 — all mutations, no API routes). Every data action begins with
+`requireUserId()` and scopes its queries by that id:
 
 | Action                 | File                   | Behavior                                                                         | Revalidates             |
 | ---------------------- | ---------------------- | -------------------------------------------------------------------------------- | ----------------------- |
-| `createHabit`          | `actions/habits.ts`    | Zod-validate → create → redirect `/`; returns field errors on failure            | `/`                     |
-| `updateHabit`          | `actions/habits.ts`    | Zod-validate → update (404-safe) → redirect `/`                                  | `/`                     |
-| `archiveHabit`         | `actions/habits.ts`    | Sets `archivedAt`                                                                | `/`, `/habits/archived` |
-| `restoreHabit`         | `actions/habits.ts`    | Clears `archivedAt`                                                              | `/`, `/habits/archived` |
-| `deleteHabit`          | `actions/habits.ts`    | `$transaction`: delete check-ins, then habit                                     | `/habits/archived`      |
-| `toggleTodayCheckIn`   | `actions/check-ins.ts` | Toggles today's check-in (delete-then-create)                                    | `/`, `/habits/[id]`     |
+| `createHabit`          | `actions/habits.ts`    | Zod-validate → create with `userId` → redirect `/`; field errors on failure      | `/`                     |
+| `updateHabit`          | `actions/habits.ts`    | Zod-validate → scoped ownership check → update → redirect `/`                    | `/`                     |
+| `archiveHabit`         | `actions/habits.ts`    | Scoped `updateMany` sets `archivedAt` (foreign id = no-op)                       | `/`, `/habits/archived` |
+| `restoreHabit`         | `actions/habits.ts`    | Scoped `updateMany` clears `archivedAt` (foreign id = no-op)                     | `/`, `/habits/archived` |
+| `deleteHabit`          | `actions/habits.ts`    | `$transaction`: scoped delete of check-ins, then habit                           | `/habits/archived`      |
+| `toggleTodayCheckIn`   | `actions/check-ins.ts` | Scoped ownership gate, then toggle (delete-then-create)                          | `/`, `/habits/[id]`     |
 | `toggleCheckInForDate` | `actions/check-ins.ts` | Same, for one calendar date; rejects malformed keys and future dates server-side | `/`, `/habits/[id]`     |
+| `signup`               | `actions/auth.ts`      | Zod-validate → bcrypt-hash → create user (P2002 = "email taken") → sign in       | —                       |
+| `login`                | `actions/auth.ts`      | `signIn("credentials")`; `AuthError` becomes a form error, success redirects `/` | —                       |
+| `logout`               | `actions/auth.ts`      | `signOut()`, redirects to `/login` (form button in `TopNav`)                     | —                       |
 
-Validation is intentionally **server-only**: the habit form omits native `required`/`maxLength`
-attributes so the zod schema stays the single source of truth, and the calendar's disabled future
-cells are mirrored by the server-side future-date guard (never trust the UI state alone).
+Validation is intentionally **server-only**: the habit and auth forms omit native validation
+attributes (`noValidate`) so the zod schemas stay the single source of truth, and the calendar's
+disabled future cells are mirrored by the server-side future-date guard (never trust the UI state
+alone).
+
+**Authentication mechanics.** The Auth.js config is split in two: `lib/auth-config.ts` is the
+DB-free base (JWT strategy, `/login` page, callbacks that put the user id into the token and onto
+`session.user.id`) used by `proxy.ts`, and `lib/auth.ts` layers on the credentials provider —
+zod-parse the credentials, look up the user by email, `bcrypt.compare` against `passwordHash`
+(comparing against a constant dummy hash when the email is unknown, so both failure paths cost
+the same). `authorize` returning `null` rejects the login. Sessions are stateless JWT cookies
+(`authjs.session-token`); `AUTH_SECRET` has a dev fallback so the zero-`.env` setup keeps working.
+Passwords are hashed with bcrypt (cost 10) at signup and in the seed script.
 
 ## 9. Styling and theming
 
@@ -254,8 +303,8 @@ cells are mirrored by the server-side future-date guard (never trust the UI stat
 ```bash
 npm install          # postinstall generates the Prisma client into lib/generated/
 npm run db:migrate   # create/upgrade prisma/dev.db
-npm run db:seed      # reset data; 3 sample habits with ~2 weeks of random check-ins
-npm run dev          # http://localhost:3000
+npm run db:seed      # reset data; 2 test accounts (alice@test.com / bob@test.com, password123)
+npm run dev          # http://localhost:3000 — log in as a seeded account or sign up
 ```
 
 Quality gates (all must pass; there is no unit-test framework):
@@ -278,12 +327,20 @@ The short list to keep in mind when changing anything:
 
 1. Dates are `YYYY-MM-DD` strings in Asia/Seoul, produced only by `lib/date.ts` helpers.
 2. Database access goes through `@/lib/prisma`; mutations live only in `actions/`.
-3. Any page that reads the database exports `dynamic = "force-dynamic"` and actions
+3. **Every habit/check-in query and mutation is scoped by the session user id** (via
+   `requireUserId()` / `auth()`): pages use `findFirst({ where: { id, userId } })` → `notFound()`,
+   actions use scoped `updateMany`/`deleteMany` or an ownership gate. Never trust the proxy alone,
+   and never query a habit by bare id.
+4. The proxy stays DB-free (optimistic cookie check only); `proxy.ts` imports `lib/auth-config.ts`,
+   never `lib/auth.ts`.
+5. Any page that reads the database exports `dynamic = "force-dynamic"` and actions
    `revalidatePath` every route they affect.
-4. Server Components by default; a new `'use client'` needs a genuine browser capability and a
+6. Server Components by default; a new `'use client'` needs a genuine browser capability and a
    justifying comment.
-5. Zod (`lib/habit-schema.ts`) is the only validation authority for habit input; server actions
-   re-validate everything the UI already constrains.
-6. Colors come from Tailwind tokens or the chart CSS variables — inline styles only for
+7. Zod (`lib/habit-schema.ts`, `lib/auth-schema.ts`) is the only validation authority for user
+   input; server actions re-validate everything the UI already constrains.
+8. Colors come from Tailwind tokens or the chart CSS variables — inline styles only for
    `habit.color` data.
-7. Dark mode = `.dark` class on `<html>`; never `prefers-color-scheme` in CSS.
+9. Dark mode = `.dark` class on `<html>`; never `prefers-color-scheme` in CSS.
+10. Passwords: bcrypt-hashed only (`passwordHash`), never logged, never echoed back into form
+    state.

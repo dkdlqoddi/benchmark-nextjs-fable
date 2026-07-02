@@ -1,15 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireUserId } from "@/lib/auth";
 import { isFutureKey, todayKey } from "@/lib/date";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Creates the check-in unless it already exists, then deletes it — i.e. toggles it. */
+/**
+ * Creates the check-in unless it already exists, then deletes it — i.e.
+ * toggles it. Only touches habits owned by the signed-in user: a foreign or
+ * unknown habit id is a silent no-op.
+ */
 async function toggleCheckIn(habitId: string, date: string): Promise<void> {
-  const habit = await prisma.habit.findUnique({ where: { id: habitId } });
+  const userId = await requireUserId();
+  const habit = await prisma.habit.findFirst({ where: { id: habitId, userId } });
   if (!habit) {
     return;
   }
@@ -33,7 +39,7 @@ async function toggleCheckIn(habitId: string, date: string): Promise<void> {
   revalidatePath(`/habits/${habitId}`);
 }
 
-/** Toggles today's check-in for a habit (the home card button). */
+/** Toggles today's check-in for one of the user's habits (the home card button). */
 export async function toggleTodayCheckIn(habitId: string): Promise<void> {
   await toggleCheckIn(habitId, todayKey());
 }

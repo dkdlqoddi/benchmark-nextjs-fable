@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HabitStatsCard } from "@/components/features/HabitStatsCard";
 import { WeeklyCompletionChart } from "@/components/features/WeeklyCompletionChart";
 import { Card } from "@/components/ui/Card";
+import { requireUserId } from "@/lib/auth";
 import { weeklyCompletionRates } from "@/lib/completion";
 import { todayKey } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
@@ -17,11 +18,12 @@ export const metadata: Metadata = {
   title: "Stats",
 };
 
-/** Stats page: current streak, longest streak, and total check-ins per habit. */
+/** Stats page: streaks and weekly completion for the signed-in user's habits. */
 export default async function StatsPage() {
+  const userId = await requireUserId();
   const today = todayKey();
   const habits = await prisma.habit.findMany({
-    where: { archivedAt: null },
+    where: { userId, archivedAt: null },
     orderBy: { createdAt: "asc" },
     include: { checkIns: { select: { date: true } } },
   });

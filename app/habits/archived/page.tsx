@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArchivedHabitCard } from "@/components/features/ArchivedHabitCard";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // Archive contents change at runtime, so always render per-request.
@@ -10,10 +11,11 @@ export const metadata: Metadata = {
   title: "Archived habits",
 };
 
-/** Page listing archived habits with restore and permanent-delete actions. */
+/** Page listing the user's archived habits with restore and permanent-delete actions. */
 export default async function ArchivedHabitsPage() {
+  const userId = await requireUserId();
   const habits = await prisma.habit.findMany({
-    where: { archivedAt: { not: null } },
+    where: { userId, archivedAt: { not: null } },
     orderBy: { archivedAt: "desc" },
   });
 

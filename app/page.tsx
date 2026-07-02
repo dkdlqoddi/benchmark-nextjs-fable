@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { HabitCard } from "@/components/features/HabitCard";
+import { todayKey } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 // Habit data changes at runtime, so always render this page per-request.
 export const dynamic = "force-dynamic";
 
-/** Home page: lists all active (non-archived) habits as cards. */
+/** Home page: lists all active (non-archived) habits with today's check-in state. */
 export default async function Home() {
+  const today = todayKey();
   const habits = await prisma.habit.findMany({
     where: { archivedAt: null },
     orderBy: { createdAt: "asc" },
+    include: { checkIns: { where: { date: today }, select: { id: true } } },
   });
 
   return (
@@ -40,9 +43,9 @@ export default async function Home() {
         </p>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {habits.map((habit) => (
+          {habits.map(({ checkIns, ...habit }) => (
             <li key={habit.id}>
-              <HabitCard habit={habit} />
+              <HabitCard habit={habit} checkedToday={checkIns.length > 0} />
             </li>
           ))}
         </ul>

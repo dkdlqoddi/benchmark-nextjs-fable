@@ -11,6 +11,10 @@ defaults to `file:./prisma/dev.db`, no `.env` needed); the client is generated i
 constructed with the `@prisma/adapter-better-sqlite3` driver adapter — always import
 the shared instance from `lib/prisma.ts`.
 
+Timezone: the app's calendar dates are fixed to Asia/Seoul regardless of server TZ.
+Never compute "today" or date keys ad hoc — always use the helpers in `lib/date.ts`
+(`todayKey`, `dateKey`, `addDays`, `parseMonth`, …).
+
 ## Project Rules (apply to all work)
 
 1. Write every component as a Server Component by default. Use `'use client'` only

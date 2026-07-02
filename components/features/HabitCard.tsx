@@ -1,14 +1,22 @@
 import Link from "next/link";
+import { toggleTodayCheckIn } from "@/actions/check-ins";
 import { archiveHabit } from "@/actions/habits";
 import { Card } from "@/components/ui/Card";
 import type { Habit } from "@/lib/generated/prisma/client";
 
+type HabitCardProps = {
+  habit: Habit;
+  /** Whether the habit already has a check-in for today (app timezone). */
+  checkedToday: boolean;
+};
+
 /**
- * Card for a single habit showing its color swatch, name, optional description,
- * and the Edit / Archive actions. The swatch color is user data from the
- * database, so it is applied as an inline style rather than a Tailwind token.
+ * Card for a single habit: color swatch, name (links to the calendar detail
+ * page), optional description, a "check in today" toggle, and Edit / Archive
+ * actions. Swatch and checked-state colors are user data from the database,
+ * so they are applied as inline styles rather than Tailwind tokens.
  */
-export function HabitCard({ habit }: { habit: Habit }) {
+export function HabitCard({ habit, checkedToday }: HabitCardProps) {
   return (
     <Card className="flex h-full flex-col">
       <div className="flex items-center gap-3">
@@ -17,13 +25,31 @@ export function HabitCard({ habit }: { habit: Habit }) {
           className="h-3.5 w-3.5 shrink-0 rounded-full"
           style={{ backgroundColor: habit.color }}
         />
-        <h2 className="truncate text-base font-semibold">{habit.name}</h2>
+        <h2 className="truncate text-base font-semibold">
+          <Link href={`/habits/${habit.id}`} className="hover:underline underline-offset-4">
+            {habit.name}
+          </Link>
+        </h2>
       </div>
       {habit.description ? (
         <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
           {habit.description}
         </p>
       ) : null}
+      <form action={toggleTodayCheckIn.bind(null, habit.id)} className="mt-4">
+        <button
+          type="submit"
+          aria-pressed={checkedToday}
+          className={`w-full rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+            checkedToday
+              ? "border-transparent text-white"
+              : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          }`}
+          style={checkedToday ? { backgroundColor: habit.color } : undefined}
+        >
+          {checkedToday ? "✓ Done today" : "Check in today"}
+        </button>
+      </form>
       <div className="mt-4 flex items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
         <Link
           href={`/habits/${habit.id}/edit`}

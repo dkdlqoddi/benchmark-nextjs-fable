@@ -1,4 +1,5 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { addDays, todayKey } from "../lib/date";
 import { PrismaClient } from "../lib/generated/prisma/client";
 
 const adapter = new PrismaBetterSqlite3({
@@ -24,23 +25,17 @@ const HABITS = [
   },
 ];
 
-/** Formats a Date as a YYYY-MM-DD string (UTC). */
-function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 /** Returns random YYYY-MM-DD keys within the last `days` days (always at least one). */
 function randomDateKeys(days: number): string[] {
+  const today = todayKey();
   const keys: string[] = [];
   for (let daysAgo = 0; daysAgo < days; daysAgo++) {
     if (Math.random() < 0.6) {
-      const date = new Date();
-      date.setUTCDate(date.getUTCDate() - daysAgo);
-      keys.push(toDateKey(date));
+      keys.push(addDays(today, -daysAgo));
     }
   }
   if (keys.length === 0) {
-    keys.push(toDateKey(new Date()));
+    keys.push(today);
   }
   return keys;
 }

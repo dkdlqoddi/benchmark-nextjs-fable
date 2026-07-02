@@ -30,6 +30,9 @@ Open <http://localhost:3000> — the home page lists the seeded habits.
 The database connection defaults to `file:./prisma/dev.db`; set the `DATABASE_URL`
 environment variable to override it.
 
+Check-in dates ("today", the calendar) are fixed to the **Asia/Seoul** timezone
+regardless of the server's TZ — see the helpers in `lib/date.ts`.
+
 ## npm scripts
 
 | Script                 | What it does                                        |
